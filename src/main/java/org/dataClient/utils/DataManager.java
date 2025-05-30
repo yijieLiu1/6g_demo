@@ -1,4 +1,4 @@
-package org.example.utils;
+package org.dataClient.utils;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;

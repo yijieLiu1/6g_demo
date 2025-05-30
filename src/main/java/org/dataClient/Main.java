@@ -1,12 +1,13 @@
-package org.example;
+package org.dataClient;
 
 import com.sun.net.httpserver.HttpServer;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.math.BigDecimal;
 
-import org.example.handler.DataHandler;
+import org.dataClient.handler.DataHandler;
+
+import java.math.BigDecimal;
 
 public class Main {
     private static final int PORT = 13456;
@@ -30,7 +31,7 @@ public class Main {
             // 示例：注册测试客户端，包括正数、负数和小数
             DataHandler.registerClient("test-client", new BigDecimal("123.45"));
             DataHandler.registerClient("test-client2", new BigDecimal("-67.89"));
-            DataHandler.registerClient("test-client3", new BigDecimal("0.001"));
+            // DataHandler.registerClient("test-client3", new BigDecimal("0.001"));
 
         } catch (IOException e) {
             System.err.println("Error starting server: " + e.getMessage());
