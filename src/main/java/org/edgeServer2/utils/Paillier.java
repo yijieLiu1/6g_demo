@@ -1,4 +1,4 @@
-package org.dataClient.utils;
+package org.edgeServer2.utils;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;

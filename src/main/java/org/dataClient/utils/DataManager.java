@@ -9,13 +9,11 @@ public class DataManager {
     private final String clientId;
     private BigDecimal plainData;
     private BigInteger cipherData;
-    private final Paillier paillier;
 
     private DataManager(String clientId, BigDecimal initialData) {
         this.clientId = clientId;
         this.plainData = initialData;
-        this.paillier = new Paillier(1024);
-        this.cipherData = paillier.encrypt(initialData);
+        this.cipherData = Paillier.encrypt(initialData);
     }
 
     public static DataManager getInstance(String clientId, BigDecimal initialData) {
@@ -32,7 +30,7 @@ public class DataManager {
 
     public void updateData(BigDecimal newData) {
         this.plainData = newData;
-        this.cipherData = paillier.encrypt(newData);
+        this.cipherData = Paillier.encrypt(newData);
     }
 
     public String getClientId() {

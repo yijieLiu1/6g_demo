@@ -29,8 +29,8 @@ public class Main {
             System.out.println("Server started on port " + PORT);
 
             // 示例：注册测试客户端，包括正数、负数和小数
-            DataHandler.registerClient("test-client", new BigDecimal("123.45"));
-            DataHandler.registerClient("test-client2", new BigDecimal("-67.89"));
+            DataHandler.registerClient("test-client", new BigDecimal("1123.45"));
+            DataHandler.registerClient("test-client2", new BigDecimal("67.89"));
             // DataHandler.registerClient("test-client3", new BigDecimal("0.001"));
 
         } catch (IOException e) {
