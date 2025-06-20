@@ -9,15 +9,21 @@ public class DataManager {
     private final String clientId;
     private BigDecimal plainData;
     private BigInteger cipherData;
+    private final Paillier paillier;
 
-    private DataManager(String clientId, BigDecimal initialData) {
+    private DataManager(String clientId, BigDecimal initialData, Paillier paillier) {
         this.clientId = clientId;
         this.plainData = initialData;
-        this.cipherData = Paillier.encrypt(initialData);
+        this.paillier = paillier;
+        if (paillier != null) {
+            this.cipherData = paillier.encryptInst(initialData);
+        } else {
+            this.cipherData = Paillier.encrypt(initialData);
+        }
     }
 
-    public static DataManager getInstance(String clientId, BigDecimal initialData) {
-        return instances.computeIfAbsent(clientId, k -> new DataManager(k, initialData));
+    public static DataManager getInstance(String clientId, BigDecimal initialData, Paillier paillier) {
+        return instances.computeIfAbsent(clientId, k -> new DataManager(k, initialData, paillier));
     }
 
     public BigDecimal getPlainData() {
@@ -30,7 +36,11 @@ public class DataManager {
 
     public void updateData(BigDecimal newData) {
         this.plainData = newData;
-        this.cipherData = Paillier.encrypt(newData);
+        if (paillier != null) {
+            this.cipherData = paillier.encryptInst(newData);
+        } else {
+            this.cipherData = Paillier.encrypt(newData);
+        }
     }
 
     public String getClientId() {

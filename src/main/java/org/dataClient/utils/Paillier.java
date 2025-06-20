@@ -24,6 +24,49 @@ public class Paillier {
     private static final BigInteger mu = new BigInteger(
             "8762676180648866948085148644234730052347919324217610501013816935146258541373924240355909212564004780247412142265048042932718102622305634998539396453659682473096442377092092279648358408257825756018027101094754895725127303773028507798199443110954840588922826633996306772228330371112836166585165382399304760194446860287800476750827758992178975847066479114302194741687968238136533191506768261308432870633986229523043778002319067610607377778752299247304574268354808695117368913460914126972408888241677645174911954253692124253404109409953359349818836109611645267630097753240536879987485162847562638307684186781753119152164");
 
+    // 新增：实例变量和构造函数
+    private final BigInteger nInst;
+    private final BigInteger gInst;
+    private final BigInteger lambdaInst;
+    private final BigInteger muInst;
+    private final int scaleInst;
+
+    public Paillier(BigInteger n, BigInteger g, BigInteger lambda, BigInteger mu, int scale) {
+        this.nInst = n;
+        this.gInst = g;
+        this.lambdaInst = lambda;
+        this.muInst = mu;
+        this.scaleInst = scale;
+    }
+
+    // 新增：实例加密方法
+    public BigInteger encryptInst(BigDecimal m) {
+        BigDecimal scaled = m.setScale(scaleInst, RoundingMode.HALF_UP);
+        BigInteger m_int = scaled.multiply(BigDecimal.TEN.pow(scaleInst)).toBigInteger();
+        if (m_int.compareTo(BigInteger.ZERO) < 0) {
+            m_int = m_int.mod(nInst);
+        }
+        Random rng = new SecureRandom();
+        BigInteger r = new BigInteger(KEY_LENGTH, rng);
+        BigInteger n2 = nInst.multiply(nInst);
+        BigInteger gm = gInst.modPow(m_int, n2);
+        BigInteger rn = r.modPow(nInst, n2);
+        return gm.multiply(rn).mod(n2);
+    }
+
+    // 新增：实例解密方法
+    public BigDecimal decryptInst(BigInteger c) {
+        BigInteger n2 = nInst.multiply(nInst);
+        BigInteger c_lambda = c.modPow(lambdaInst, n2);
+        BigInteger L = c_lambda.subtract(BigInteger.ONE).divide(nInst);
+        BigInteger m = L.multiply(muInst).mod(nInst);
+        BigInteger halfN = nInst.divide(BigInteger.TWO);
+        if (m.compareTo(halfN) > 0) {
+            m = m.subtract(nInst);
+        }
+        return new BigDecimal(m).divide(BigDecimal.TEN.pow(scaleInst), scaleInst, RoundingMode.HALF_UP);
+    }
+
     public static BigInteger encrypt(BigDecimal m) {
         // 将小数转换为整数（乘以10^8保留8位小数）
         BigDecimal scaled = m.setScale(SCALE, RoundingMode.HALF_UP);

@@ -1,4 +1,4 @@
-package org.edgeServer.utils;
+package org.edgeServer1.utils;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.math.BigInteger;

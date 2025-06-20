@@ -1,4 +1,4 @@
-package org.edgeServer.handler;
+package org.edgeServer1.handler;
 
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
@@ -7,7 +7,7 @@ import java.io.OutputStream;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.util.concurrent.ConcurrentHashMap;
-import org.edgeServer.utils.EdgeManager;
+import org.edgeServer1.utils.EdgeManager;
 
 public class EdgeHandler implements HttpHandler {
     private static final ConcurrentHashMap<String, EdgeManager> clients = new ConcurrentHashMap<>();
