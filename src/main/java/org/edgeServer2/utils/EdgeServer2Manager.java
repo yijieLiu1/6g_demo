@@ -3,10 +3,17 @@ package org.edgeServer2.utils;
 import java.math.BigInteger;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.net.URI;
 
 public class EdgeServer2Manager {
     private static String receivedCipherText = "";
     private static String decryptedText = "";
+    private static final String CENTER_SERVER_URL = "http://localhost:33333";
+    private static final HttpClient httpClient = HttpClient.newHttpClient();
+    private static final int SCALE = 8; // 保留8位小数
 
     public static void processAggregatedCipherText(String cipherText) {
         receivedCipherText = cipherText;
@@ -22,6 +29,16 @@ public class EdgeServer2Manager {
                 // 保留2位小数，确保正确显示负数
                 decryptedText = m.setScale(2, RoundingMode.HALF_UP).toPlainString();
                 System.out.println("最终显示结果: " + decryptedText);
+
+                // 使用ImprovePaillier的SK_DO密钥对解密结果进行加密
+                BigDecimal scaled = new BigDecimal(decryptedText).setScale(SCALE, RoundingMode.HALF_UP);
+                BigInteger valueToEncrypt = scaled.multiply(BigDecimal.TEN.pow(SCALE)).toBigInteger();
+                BigInteger encryptedValue = ImprovePaillier.encrypt(valueToEncrypt, 0);
+
+                // 发送加密后的结果到CenterServer
+                sendEncryptedValueToCenterServer(encryptedValue.toString());
+
+                System.out.println("已发送加密数据到Center Server: " + encryptedValue.toString());
             } catch (Exception e) {
                 decryptedText = "Error decrypting: " + e.getMessage();
                 System.out.println("解密错误: " + e.getMessage());
@@ -30,6 +47,32 @@ public class EdgeServer2Manager {
         } else {
             decryptedText = "No cipher text received";
             System.out.println("没有接收到密文");
+        }
+    }
+
+    private static void sendEncryptedValueToCenterServer(String encryptedValue) {
+        try {
+            System.out.println("正在发送数据到Center Server...");
+            System.out.println("URL: " + CENTER_SERVER_URL + "/post/aggregatedCipherText");
+            System.out.println("数据: " + encryptedValue);
+
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(CENTER_SERVER_URL + "/post/aggregatedCipherText"))
+                    .header("Content-Type", "text/plain")
+                    .header("Server-Type", "server2")
+                    .POST(HttpRequest.BodyPublishers.ofString(encryptedValue))
+                    .build();
+
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            System.out.println("Center Server响应状态码: " + response.statusCode());
+            System.out.println("Center Server响应内容: " + response.body());
+
+            if (response.statusCode() != 200) {
+                System.err.println("Failed to send encrypted value to center server: " + response.body());
+            }
+        } catch (Exception e) {
+            System.err.println("Error sending encrypted value to center server: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 

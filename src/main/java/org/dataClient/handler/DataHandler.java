@@ -51,7 +51,9 @@ public class DataHandler implements HttpHandler {
 
         String response;
         if (path.equals("/get/plainText")) {
+
             response = "plainText:" + dataManager.getPlainData().toString();
+
         } else if (path.equals("/get/cipherText")) {
             String cipherText = dataManager.getCipherData().toString();
             response = "cipherText:" + cipherText;

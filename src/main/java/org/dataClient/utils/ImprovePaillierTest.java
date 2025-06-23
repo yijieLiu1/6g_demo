@@ -76,7 +76,7 @@ public class ImprovePaillierTest {
         BigInteger De = L.multiply(u).mod(N).mod(y);
         // 若De > y/2，返回y-De，否则返回De本身
         if (De.compareTo(y.divide(BigInteger.TWO)) > 0) {
-            return y.subtract(De);
+            return De.subtract(y);
         } else {
             return De;
         }
