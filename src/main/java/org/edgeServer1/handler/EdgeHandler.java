@@ -6,6 +6,8 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import org.edgeServer1.utils.EdgeManager;
 
@@ -25,9 +27,21 @@ public class EdgeHandler implements HttpHandler {
         String response;
         if (path.equals("/get/totalclientNum")) {
             response = "totalclientNum:" + String.valueOf(EdgeManager.getClientCount());
+        } else if (path.equals("/get/compareCipherText")) {
+            Map<String, String> params = queryToMap(exchange.getRequestURI().getQuery());
+            String clientId1 = params.get("client1");
+            String clientId2 = params.get("client2");
+
+            if (clientId1 == null || clientId2 == null) {
+                sendResponse(exchange, 400, "Missing client1 or client2 query parameter.");
+                return;
+            }
+            response = EdgeManager.generateAndSendComparisonCipherText(clientId1, clientId2);
         } else if (path.equals("/get/sumcipherText")) {
             response = "sumcipherText:" + EdgeManager.getAggregatedCipherText();
-        } else if (path.equals("/post/cipherText")) {
+        }
+
+        else if (path.equals("/post/cipherText")) {
             if (exchange.getRequestMethod().equals("POST")) {
                 // 读取请求体中的密文
                 BufferedReader reader = new BufferedReader(new InputStreamReader(exchange.getRequestBody()));
@@ -46,6 +60,23 @@ public class EdgeHandler implements HttpHandler {
         }
 
         sendResponse(exchange, 200, response);
+    }
+
+    // 用于将URL中的查询字符串转为Map ?client1=XXX &client2=YYY，以正确处理Client-ID值。
+    private Map<String, String> queryToMap(String query) {
+        if (query == null) {
+            return new HashMap<>();
+        }
+        Map<String, String> result = new HashMap<>();
+        for (String param : query.split("&")) {
+            String[] entry = param.split("=");
+            if (entry.length > 1) {
+                result.put(entry[0], entry[1]);
+            } else {
+                result.put(entry[0], "");
+            }
+        }
+        return result;
     }
 
     private void sendResponse(HttpExchange exchange, int statusCode, String response) throws IOException {

@@ -15,6 +15,13 @@ public class EdgeServer2Manager {
     private static final HttpClient httpClient = HttpClient.newHttpClient();
     private static final int SCALE = 8; // 保留8位小数
 
+    private static class ComparisonResult {
+        String decryptedValue;
+        String outcomeMessage;
+    }
+
+    private static ComparisonResult lastComparisonResult = null;
+
     public static void processAggregatedCipherText(String cipherText) {
         receivedCipherText = cipherText;
         if (!cipherText.isEmpty()) {
@@ -48,6 +55,44 @@ public class EdgeServer2Manager {
             decryptedText = "No cipher text received";
             System.out.println("没有接收到密文");
         }
+    }
+
+    public static void processComparisonData(String cipherText, String clientId1, String clientId2) {
+        try {
+            BigInteger c = new BigInteger(cipherText);
+            BigDecimal m_blinded = Paillier.decrypt(c);
+            BigInteger M = m_blinded.toBigInteger();
+            BigInteger n = Paillier.getPublicKey();
+            BigInteger halfN = n.divide(BigInteger.TWO);
+            String outcome;
+
+            if (M.compareTo(BigInteger.ZERO) < 0) {
+                outcome = String.format("\n客户端 %s 的数小于客户端 %s.", clientId1, clientId2);
+            } else {
+                outcome = String.format("\n客户端 %s 的数大于客户端 %s.", clientId1, clientId2);
+            }
+
+            lastComparisonResult = new ComparisonResult();
+            lastComparisonResult.decryptedValue = M.toString();
+            lastComparisonResult.outcomeMessage = outcome;
+
+            System.out.println("Comparison processed. Decrypted value: " + M + ". Outcome: " + outcome);
+        } catch (Exception e) {
+            lastComparisonResult = new ComparisonResult();
+            lastComparisonResult.decryptedValue = "Error";
+            lastComparisonResult.outcomeMessage = "Error processing comparison: " + e.getMessage();
+            e.printStackTrace();
+        }
+    }
+
+    public static String getCompareResult() {
+        if (lastComparisonResult == null) {
+            return "No comparison has been performed yet.";
+        }
+        return String.format(
+                "Decrypted Value (De[En(r1*(m1-m2)+r2)]): %s\nComparison Result: %s",
+                lastComparisonResult.decryptedValue,
+                lastComparisonResult.outcomeMessage);
     }
 
     private static void sendEncryptedValueToCenterServer(String encryptedValue) {

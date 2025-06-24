@@ -17,6 +17,7 @@ public class Main {
             server.createContext("/get/totalclientNum", edgeHandler);
             server.createContext("/get/sumcipherText", edgeHandler);
             server.createContext("/post/cipherText", edgeHandler);
+            server.createContext("/get/compareCipherText", edgeHandler);
 
             // 设置线程池
             server.setExecutor(null);

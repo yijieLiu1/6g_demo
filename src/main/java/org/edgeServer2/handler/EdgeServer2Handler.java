@@ -18,7 +18,9 @@ public class EdgeServer2Handler implements HttpHandler {
             response = EdgeServer2Manager.getDecryptedText();
         } else if (path.equals("/get/receivedCipherText")) {
             response = EdgeServer2Manager.getReceivedCipherText();
-        } else if (path.equals("/post/aggregatedCipherText")) {
+        }
+
+        else if (path.equals("/post/aggregatedCipherText")) {
             if (exchange.getRequestMethod().equals("POST")) {
                 // 读取请求体中的聚合密文
                 BufferedReader reader = new BufferedReader(new InputStreamReader(exchange.getRequestBody()));
@@ -31,7 +33,28 @@ public class EdgeServer2Handler implements HttpHandler {
                 sendResponse(exchange, 405, "Method not allowed");
                 return;
             }
-        } else {
+        } else if (path.equals("/get/compareResult")) {
+            response = EdgeServer2Manager.getCompareResult();
+        } else if (path.equals("/post/comparisonData")) {
+            if (exchange.getRequestMethod().equalsIgnoreCase("POST")) {
+                String clientId1 = exchange.getRequestHeaders().getFirst("Client-ID1");
+                String clientId2 = exchange.getRequestHeaders().getFirst("Client-ID2");
+
+                if (clientId1 == null || clientId2 == null) {
+                    sendResponse(exchange, 400, "Missing Client-ID1 or Client-ID2 header.");
+                    return;
+                }
+                BufferedReader reader = new BufferedReader(new InputStreamReader(exchange.getRequestBody()));
+                String cipherText = reader.readLine();
+                EdgeServer2Manager.processComparisonData(cipherText, clientId1, clientId2);
+                response = "Comparison data received.";
+            } else {
+                sendResponse(exchange, 405, "Method Not Allowed");
+                return;
+            }
+        }
+
+        else {
             sendResponse(exchange, 404, "Path not found");
             return;
         }
