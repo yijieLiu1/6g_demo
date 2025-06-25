@@ -16,6 +16,7 @@ public class Main {
             // 注册路由
             server.createContext("/get/decryptedText", edgeServer2Handler);
             server.createContext("/get/receivedCipherText", edgeServer2Handler);
+            server.createContext("/get/impaillierCipherText", edgeServer2Handler);
             server.createContext("/post/aggregatedCipherText", edgeServer2Handler);
             server.createContext("/post/comparisonData", edgeServer2Handler);
             server.createContext("/get/compareResult", edgeServer2Handler);

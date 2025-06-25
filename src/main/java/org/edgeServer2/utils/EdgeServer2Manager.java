@@ -21,31 +21,28 @@ public class EdgeServer2Manager {
     }
 
     private static ComparisonResult lastComparisonResult = null;
+    private static String lastImpaillierCipherText = "";
 
     public static void processAggregatedCipherText(String cipherText) {
         receivedCipherText = cipherText;
         if (!cipherText.isEmpty()) {
             try {
                 BigInteger c = new BigInteger(cipherText);
-                System.out.println("接收到的密文: " + c);
 
                 // 使用Paillier解密算法
                 BigDecimal m = Paillier.decrypt(c);
-                System.out.println("解密后的原始值: " + m);
 
                 // 保留2位小数，确保正确显示负数
                 decryptedText = m.setScale(2, RoundingMode.HALF_UP).toPlainString();
-                System.out.println("最终显示结果: " + decryptedText);
 
                 // 使用ImprovePaillier的SK_DO密钥对解密结果进行加密
                 BigDecimal scaled = new BigDecimal(decryptedText).setScale(SCALE, RoundingMode.HALF_UP);
                 BigInteger valueToEncrypt = scaled.multiply(BigDecimal.TEN.pow(SCALE)).toBigInteger();
                 BigInteger encryptedValue = ImprovePaillier.encrypt(valueToEncrypt, 0);
 
-                // 发送加密后的结果到CenterServer
-                sendEncryptedValueToCenterServer(encryptedValue.toString());
+                // 只保存，不自动上传
+                lastImpaillierCipherText = encryptedValue.toString();
 
-                System.out.println("已发送加密数据到Center Server: " + encryptedValue.toString());
             } catch (Exception e) {
                 decryptedText = "Error decrypting: " + e.getMessage();
                 System.out.println("解密错误: " + e.getMessage());
@@ -162,5 +159,14 @@ public class EdgeServer2Manager {
 
     public static String getReceivedCipherText() {
         return receivedCipherText.isEmpty() ? "No cipher text received" : receivedCipherText;
+    }
+
+    // 新增：获取ImprovePaillier密文并上传centerServer
+    public static String getImpaillierCipherText() {
+        if (lastImpaillierCipherText == null || lastImpaillierCipherText.isEmpty()) {
+            return "No ImprovePaillier cipher text available.";
+        }
+        sendEncryptedValueToCenterServer(lastImpaillierCipherText);
+        return lastImpaillierCipherText;
     }
 }

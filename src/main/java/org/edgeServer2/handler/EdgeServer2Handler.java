@@ -33,9 +33,13 @@ public class EdgeServer2Handler implements HttpHandler {
                 sendResponse(exchange, 405, "Method not allowed");
                 return;
             }
-        } else if (path.equals("/get/compareResult")) {
+        }
+
+        else if (path.equals("/get/compareResult")) {
             response = EdgeServer2Manager.getCompareResult();
-        } else if (path.equals("/post/comparisonData")) {
+        }
+
+        else if (path.equals("/post/comparisonData")) {
             if (exchange.getRequestMethod().equalsIgnoreCase("POST")) {
                 String clientId1 = exchange.getRequestHeaders().getFirst("Client-ID1");
                 String clientId2 = exchange.getRequestHeaders().getFirst("Client-ID2");
@@ -52,6 +56,10 @@ public class EdgeServer2Handler implements HttpHandler {
                 sendResponse(exchange, 405, "Method Not Allowed");
                 return;
             }
+        }
+
+        else if (path.equals("/get/impaillierCipherText")) {
+            response = EdgeServer2Manager.getImpaillierCipherText();
         }
 
         else {

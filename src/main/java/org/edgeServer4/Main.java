@@ -16,7 +16,10 @@ public class Main {
             // 注册路由
             server.createContext("/get/decryptedText", edgeServer4Handler);
             server.createContext("/get/receivedCipherText", edgeServer4Handler);
+            server.createContext("/get/impaillierCipherText", edgeServer4Handler);
             server.createContext("/post/aggregatedCipherText", edgeServer4Handler);
+            server.createContext("/get/compareResult", edgeServer4Handler);
+            server.createContext("/post/comparisonData", edgeServer4Handler);
 
             // 设置线程池
             server.setExecutor(null);

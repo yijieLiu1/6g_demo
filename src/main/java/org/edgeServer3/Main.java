@@ -16,6 +16,7 @@ public class Main {
             // 注册路由
             server.createContext("/get/totalclientNum", edgeServer3Handler);
             server.createContext("/get/sumcipherText", edgeServer3Handler);
+            server.createContext("/get/compareCipherText", edgeServer3Handler);
             server.createContext("/post/cipherText", edgeServer3Handler);
 
             // 设置线程池

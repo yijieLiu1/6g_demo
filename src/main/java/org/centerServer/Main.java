@@ -25,7 +25,6 @@ public class Main {
 
             // 设置线程池
             server.setExecutor(java.util.concurrent.Executors.newFixedThreadPool(10));
-            System.out.println("线程池设置完成");
 
             // 启动服务器
             server.start();

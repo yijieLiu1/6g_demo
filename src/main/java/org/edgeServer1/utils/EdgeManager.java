@@ -43,7 +43,7 @@ public class EdgeManager {
         aggregatedCipherText = result.toString();
 
         // 发送聚合后的密文到edgeServer2
-        sendAggregatedCipherTextToEdgeServer2(aggregatedCipherText);
+
     }
 
     // 发送聚合后的密文到edgeServer2
@@ -129,6 +129,7 @@ public class EdgeManager {
     }
 
     public static String getAggregatedCipherText() {
+        sendAggregatedCipherTextToEdgeServer2(aggregatedCipherText);
         return aggregatedCipherText;
     }
 

@@ -14,31 +14,36 @@ public class EdgeServer4Manager {
     private static final String CENTER_SERVER_URL = "http://localhost:33333";
     private static final HttpClient httpClient = HttpClient.newHttpClient();
     private static final int SCALE = 8; // 保留8位小数
+    private static String lastImpaillierCipherText = "";
+
+    // 比较结果内部类
+    private static class ComparisonResult {
+        String decryptedValue;
+        String outcomeMessage;
+    }
+
+    private static ComparisonResult lastComparisonResult = null;
 
     public static void processAggregatedCipherText(String cipherText) {
         receivedCipherText = cipherText;
         if (!cipherText.isEmpty()) {
             try {
                 BigInteger c = new BigInteger(cipherText);
-                System.out.println("接收到的密文: " + c);
 
                 // 使用Paillier解密算法
                 BigDecimal m = Paillier.decrypt(c);
-                System.out.println("解密后的原始值: " + m);
 
                 // 保留2位小数，确保正确显示负数
                 decryptedText = m.setScale(2, RoundingMode.HALF_UP).toPlainString();
-                System.out.println("最终显示结果: " + decryptedText);
 
                 // 使用ImprovePaillier的SK_DO密钥对解密结果进行加密
                 BigDecimal scaled = new BigDecimal(decryptedText).setScale(SCALE, RoundingMode.HALF_UP);
                 BigInteger valueToEncrypt = scaled.multiply(BigDecimal.TEN.pow(SCALE)).toBigInteger();
                 BigInteger encryptedValue = ImprovePaillier.encrypt(valueToEncrypt, 1); // 使用SK_DO[1]进行加密
 
-                // 发送加密后的结果到CenterServer
-                sendEncryptedValueToCenterServer(encryptedValue.toString());
+                // 只保存，不自动上传
+                lastImpaillierCipherText = encryptedValue.toString();
 
-                System.out.println("已发送加密数据到Center Server: " + encryptedValue.toString());
             } catch (Exception e) {
                 decryptedText = "Error decrypting: " + e.getMessage();
                 System.out.println("解密错误: " + e.getMessage());
@@ -117,5 +122,54 @@ public class EdgeServer4Manager {
 
     public static String getReceivedCipherText() {
         return receivedCipherText.isEmpty() ? "No cipher text received" : receivedCipherText;
+    }
+
+    // 处理比较密文
+    public static void processComparisonData(String cipherText, String clientId1, String clientId2) {
+        try {
+            BigInteger c = new BigInteger(cipherText);
+            BigDecimal m_blinded = Paillier.decrypt(c);
+            BigInteger M = m_blinded.toBigInteger();
+            BigInteger n = Paillier.getPublicKey();
+            BigInteger halfN = n.divide(BigInteger.TWO);
+            String outcome;
+
+            if (M.compareTo(BigInteger.ZERO) < 0) {
+                outcome = String.format("\n客户端 %s 的数小于客户端 %s.", clientId1, clientId2);
+            } else {
+                outcome = String.format("\n客户端 %s 的数大于客户端 %s.", clientId1, clientId2);
+            }
+
+            lastComparisonResult = new ComparisonResult();
+            lastComparisonResult.decryptedValue = M.toString();
+            lastComparisonResult.outcomeMessage = outcome;
+
+            System.out.println("Comparison processed. Decrypted value: " + M + ". Outcome: " + outcome);
+        } catch (Exception e) {
+            lastComparisonResult = new ComparisonResult();
+            lastComparisonResult.decryptedValue = "Error";
+            lastComparisonResult.outcomeMessage = "Error processing comparison: " + e.getMessage();
+            e.printStackTrace();
+        }
+    }
+
+    // 获取最近一次比较结果
+    public static String getCompareResult() {
+        if (lastComparisonResult == null) {
+            return "No comparison has been performed yet.";
+        }
+        return String.format(
+                "Decrypted Value (De[En(r1*(m1-m2)+r2)]): %s\nComparison Result: %s",
+                lastComparisonResult.decryptedValue,
+                lastComparisonResult.outcomeMessage);
+    }
+
+    // 新增：获取ImprovePaillier密文并上传centerServer
+    public static String getImpaillierCipherText() {
+        if (lastImpaillierCipherText == null || lastImpaillierCipherText.isEmpty()) {
+            return "No ImprovePaillier cipher text available.";
+        }
+        sendEncryptedValueToCenterServer(lastImpaillierCipherText);
+        return lastImpaillierCipherText;
     }
 }

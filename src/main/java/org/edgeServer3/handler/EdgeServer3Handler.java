@@ -8,6 +8,7 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.util.concurrent.ConcurrentHashMap;
 import org.edgeServer3.utils.EdgeServer3Manager;
+import java.util.Map;
 
 public class EdgeServer3Handler implements HttpHandler {
     private static final ConcurrentHashMap<String, EdgeServer3Manager> clients = new ConcurrentHashMap<>();
@@ -25,6 +26,16 @@ public class EdgeServer3Handler implements HttpHandler {
         String response;
         if (path.equals("/get/totalclientNum")) {
             response = "totalclientNum:" + String.valueOf(EdgeServer3Manager.getClientCount());
+        } else if (path.equals("/get/compareCipherText")) {
+            Map<String, String> params = queryToMap(exchange.getRequestURI().getQuery());
+            String clientId1 = params.get("client1");
+            String clientId2 = params.get("client2");
+
+            if (clientId1 == null || clientId2 == null) {
+                sendResponse(exchange, 400, "Missing client1 or client2 query parameter.");
+                return;
+            }
+            response = EdgeServer3Manager.generateAndSendComparisonCipherText(clientId1, clientId2);
         } else if (path.equals("/get/sumcipherText")) {
             response = "sumcipherText:" + EdgeServer3Manager.getAggregatedCipherText();
         } else if (path.equals("/post/cipherText")) {
@@ -53,5 +64,22 @@ public class EdgeServer3Handler implements HttpHandler {
         try (OutputStream os = exchange.getResponseBody()) {
             os.write(response.getBytes());
         }
+    }
+
+    // 用于将URL中的查询字符串转为Map，便于获取client1和client2参数
+    private Map<String, String> queryToMap(String query) {
+        if (query == null) {
+            return new java.util.HashMap<>();
+        }
+        Map<String, String> result = new java.util.HashMap<>();
+        for (String param : query.split("&")) {
+            String[] entry = param.split("=");
+            if (entry.length > 1) {
+                result.put(entry[0], entry[1]);
+            } else {
+                result.put(entry[0], "");
+            }
+        }
+        return result;
     }
 }

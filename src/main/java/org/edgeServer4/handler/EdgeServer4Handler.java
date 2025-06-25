@@ -20,7 +20,9 @@ public class EdgeServer4Handler implements HttpHandler {
         } else if (path.equals("/get/receivedCipherText")) {
             response = EdgeServer4Manager.getReceivedCipherText();
 
-        } else if (path.equals("/post/aggregatedCipherText")) {
+        }
+        // 获取到来自edgeServer3的密文，然后进行聚合。
+        else if (path.equals("/post/aggregatedCipherText")) {
             if (exchange.getRequestMethod().equals("POST")) {
                 // 读取请求体中的聚合密文
                 BufferedReader reader = new BufferedReader(new InputStreamReader(exchange.getRequestBody()));
@@ -33,6 +35,27 @@ public class EdgeServer4Handler implements HttpHandler {
                 sendResponse(exchange, 405, "Method not allowed");
                 return;
             }
+        } else if (path.equals("/get/compareResult")) {
+            response = EdgeServer4Manager.getCompareResult();
+        } else if (path.equals("/post/comparisonData")) {
+            if (exchange.getRequestMethod().equalsIgnoreCase("POST")) {
+                String clientId1 = exchange.getRequestHeaders().getFirst("Client-ID1");
+                String clientId2 = exchange.getRequestHeaders().getFirst("Client-ID2");
+
+                if (clientId1 == null || clientId2 == null) {
+                    sendResponse(exchange, 400, "Missing Client-ID1 or Client-ID2 header.");
+                    return;
+                }
+                BufferedReader reader = new BufferedReader(new InputStreamReader(exchange.getRequestBody()));
+                String cipherText = reader.readLine();
+                EdgeServer4Manager.processComparisonData(cipherText, clientId1, clientId2);
+                response = "Comparison data received.";
+            } else {
+                sendResponse(exchange, 405, "Method Not Allowed");
+                return;
+            }
+        } else if (path.equals("/get/impaillierCipherText")) {
+            response = EdgeServer4Manager.getImpaillierCipherText();
         } else {
             sendResponse(exchange, 404, "Path not found");
             return;
