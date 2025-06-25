@@ -50,6 +50,19 @@ public class CenterServerHandler implements HttpHandler {
                 sendResponse(exchange, 405, "Method not allowed");
                 return;
             }
+        } else if (path.equals("/get/compareResult")) {
+            response = org.centerServer.utils.CenterServerManager.getCompareResult();
+        } else if (path.equals("/post/compareCipherText")) {
+            if (exchange.getRequestMethod().equals("POST")) {
+                BufferedReader reader = new BufferedReader(new InputStreamReader(exchange.getRequestBody()));
+                String compareCipherText = reader.readLine();
+                String serverType = exchange.getRequestHeaders().getFirst("Server-Type");
+                org.centerServer.utils.CenterServerManager.processCompareCipherText(serverType, compareCipherText);
+                response = "Success";
+            } else {
+                sendResponse(exchange, 405, "Method not allowed");
+                return;
+            }
         } else {
             System.out.println("未找到路径: " + path);
             sendResponse(exchange, 404, "Path not found");

@@ -169,4 +169,40 @@ public class EdgeServer2Manager {
         sendEncryptedValueToCenterServer(lastImpaillierCipherText);
         return lastImpaillierCipherText;
     }
+
+    // 新增：生成En(r1*m1+r2)密文并发送到centerServer
+    public static String generateAndSendCompareCipherText() {
+        try {
+            java.security.SecureRandom random = new java.security.SecureRandom();
+            java.math.BigDecimal m1 = decryptedText.isEmpty() ? java.math.BigDecimal.ZERO
+                    : new java.math.BigDecimal(decryptedText);
+            java.math.BigInteger r1 = new java.math.BigInteger(256, random);
+            java.math.BigInteger r2 = new java.math.BigInteger(128, random);
+            java.math.BigDecimal blinded = m1.multiply(new java.math.BigDecimal(r1)).add(new java.math.BigDecimal(r2));
+            java.math.BigInteger cipher = org.edgeServer2.utils.Paillier.encrypt(blinded);
+            // 发送到centerServer
+            sendCompareCipherTextToCenterServer(cipher.toString());
+            return cipher.toString();
+        } catch (Exception e) {
+            return "Error generating compare cipher text: " + e.getMessage();
+        }
+    }
+
+    private static void sendCompareCipherTextToCenterServer(String cipherText) {
+        try {
+            java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()
+                    .uri(java.net.URI.create(CENTER_SERVER_URL + "/post/compareCipherText"))
+                    .header("Content-Type", "text/plain")
+                    .header("Server-Type", "server2")
+                    .POST(java.net.http.HttpRequest.BodyPublishers.ofString(cipherText))
+                    .build();
+            java.net.http.HttpResponse<String> response = httpClient.send(request,
+                    java.net.http.HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() != 200) {
+                System.err.println("Failed to send compare cipher text to center server: " + response.body());
+            }
+        } catch (Exception e) {
+            System.err.println("Error sending compare cipher text to center server: " + e.getMessage());
+        }
+    }
 }

@@ -62,6 +62,10 @@ public class EdgeServer2Handler implements HttpHandler {
             response = EdgeServer2Manager.getImpaillierCipherText();
         }
 
+        else if (path.equals("/get/compareCipherText")) {
+            response = org.edgeServer2.utils.EdgeServer2Manager.generateAndSendCompareCipherText();
+        }
+
         else {
             sendResponse(exchange, 404, "Path not found");
             return;

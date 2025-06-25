@@ -20,6 +20,7 @@ public class Main {
             server.createContext("/post/aggregatedCipherText", edgeServer2Handler);
             server.createContext("/post/comparisonData", edgeServer2Handler);
             server.createContext("/get/compareResult", edgeServer2Handler);
+            server.createContext("/get/compareCipherText", edgeServer2Handler);
 
             // 设置线程池
             server.setExecutor(null);

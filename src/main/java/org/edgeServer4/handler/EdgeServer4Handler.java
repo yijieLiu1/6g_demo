@@ -56,6 +56,8 @@ public class EdgeServer4Handler implements HttpHandler {
             }
         } else if (path.equals("/get/impaillierCipherText")) {
             response = EdgeServer4Manager.getImpaillierCipherText();
+        } else if (path.equals("/get/compareCipherText")) {
+            response = org.edgeServer4.utils.EdgeServer4Manager.generateAndSendCompareCipherText();
         } else {
             sendResponse(exchange, 404, "Path not found");
             return;
