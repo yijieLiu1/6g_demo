@@ -9,16 +9,21 @@ import java.net.http.HttpResponse;
 import java.security.SecureRandom;
 import java.net.URI;
 import org.edgeServer2.utils.Paillier;
+import org.json.JSONObject;
 
 public class EdgeManager {
     private static final ConcurrentHashMap<String, String> clientCipherTexts = new ConcurrentHashMap<>();
     private static String aggregatedCipherText = "";
+    private static final ConcurrentHashMap<String, String> clientSquareCipherTexts = new ConcurrentHashMap<>();
+    private static String aggregatedSquareCipherText = "";
     private static final String EDGE_SERVER2_URL = "http://localhost:33456";
     private static final HttpClient httpClient = HttpClient.newHttpClient();
 
-    public static void registerClient(String clientId, String cipherText) {
+    public static void registerClient(String clientId, String cipherText, String squareCipherText) {
         clientCipherTexts.put(clientId, cipherText);
+        clientSquareCipherTexts.put(clientId, squareCipherText);
         updateAggregatedCipherText();
+        updateAggregatedSquareCipherText();
     }
 
     private static void updateAggregatedCipherText() {
@@ -41,19 +46,38 @@ public class EdgeManager {
         }
 
         aggregatedCipherText = result.toString();
-
         // 发送聚合后的密文到edgeServer2
 
+    }
+
+    private static void updateAggregatedSquareCipherText() {
+        if (clientSquareCipherTexts.isEmpty()) {
+            aggregatedSquareCipherText = "";
+            return;
+        }
+        BigInteger result = new BigInteger(clientSquareCipherTexts.values().iterator().next());
+        for (String squareCipherText : clientSquareCipherTexts.values()) {
+            if (squareCipherText.equals(clientSquareCipherTexts.values().iterator().next())) {
+                continue;
+            }
+            BigInteger currentCipher = new BigInteger(squareCipherText);
+            result = result.multiply(currentCipher).mod(Paillier.getN2());
+        }
+        aggregatedSquareCipherText = result.toString();
     }
 
     // 发送聚合后的密文到edgeServer2
     private static void sendAggregatedCipherTextToEdgeServer2(String cipherText) {
         try {
+            JSONObject json = new JSONObject();
+            json.put("cipherText", cipherText);
+            json.put("squareCipherText", getAggregatedSquareCipherText());
+            json.put("clientCount", getClientCount());
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(EDGE_SERVER2_URL + "/post/aggregatedCipherText"))
-                    .POST(HttpRequest.BodyPublishers.ofString(cipherText))
+                    .header("Content-Type", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(json.toString()))
                     .build();
-
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() != 200) {
                 System.err.println("Failed to send aggregated cipher text to edge server 2: " + response.body());
@@ -131,6 +155,10 @@ public class EdgeManager {
     public static String getAggregatedCipherText() {
         sendAggregatedCipherTextToEdgeServer2(aggregatedCipherText);
         return aggregatedCipherText;
+    }
+
+    public static String getAggregatedSquareCipherText() {
+        return aggregatedSquareCipherText;
     }
 
     public static int getClientCount() {

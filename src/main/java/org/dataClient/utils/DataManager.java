@@ -46,4 +46,14 @@ public class DataManager {
     public String getClientId() {
         return clientId;
     }
+
+    public BigInteger getSquareCipherData() {
+        BigDecimal squareData = plainData.multiply(plainData);
+
+        if (paillier != null) {
+            return paillier.encryptInst(squareData);
+        } else {
+            return Paillier.encrypt(squareData);
+        }
+    }
 }

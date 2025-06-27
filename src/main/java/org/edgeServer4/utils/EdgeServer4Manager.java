@@ -7,6 +7,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.net.URI;
+import org.json.JSONObject;
 
 public class EdgeServer4Manager {
     private static String receivedCipherText = "";
@@ -15,6 +16,10 @@ public class EdgeServer4Manager {
     private static final HttpClient httpClient = HttpClient.newHttpClient();
     private static final int SCALE = 8; // 保留8位小数
     private static String lastImpaillierCipherText = "";
+    private static BigDecimal meanValue = null;
+    private static int lastClientCount = 0;
+    private static BigDecimal ex2Value = null;
+    private static Double varianceValue = null;
 
     // 比较结果内部类
     private static class ComparisonResult {
@@ -24,26 +29,24 @@ public class EdgeServer4Manager {
 
     private static ComparisonResult lastComparisonResult = null;
 
-    public static void processAggregatedCipherText(String cipherText) {
+    public static void processAggregatedCipherText(String cipherText, int clientCount) {
+        lastClientCount = clientCount;
         receivedCipherText = cipherText;
         if (!cipherText.isEmpty()) {
             try {
                 BigInteger c = new BigInteger(cipherText);
-
                 // 使用Paillier解密算法
                 BigDecimal m = Paillier.decrypt(c);
-
                 // 保留2位小数，确保正确显示负数
                 decryptedText = m.setScale(2, RoundingMode.HALF_UP).toPlainString();
-
+                // 计算均值
+                processMeanData(m, clientCount);
                 // 使用ImprovePaillier的SK_DO密钥对解密结果进行加密
                 BigDecimal scaled = new BigDecimal(decryptedText).setScale(SCALE, RoundingMode.HALF_UP);
                 BigInteger valueToEncrypt = scaled.multiply(BigDecimal.TEN.pow(SCALE)).toBigInteger();
                 BigInteger encryptedValue = ImprovePaillier.encrypt(valueToEncrypt, 1); // 使用SK_DO[1]进行加密
-
                 // 只保存，不自动上传
                 lastImpaillierCipherText = encryptedValue.toString();
-
             } catch (Exception e) {
                 decryptedText = "Error decrypting: " + e.getMessage();
                 System.out.println("解密错误: " + e.getMessage());
@@ -55,23 +58,24 @@ public class EdgeServer4Manager {
         }
     }
 
-    private static void sendEncryptedValueToCenterServer(String encryptedValue) {
+    // 使用ImprovePaillier的SK_DO密钥对解密结果进行加密,发送给centerServer。
+    private static void sendEncryptedValueToCenterServer(String encryptedValue, int clientCount) {
         try {
             System.out.println("正在发送数据到Center Server...");
             System.out.println("URL: " + CENTER_SERVER_URL + "/post/aggregatedCipherText");
-            System.out.println("数据: " + encryptedValue);
-
+            System.out.println("数据: " + encryptedValue + ", clientCount: " + clientCount);
+            JSONObject json = new JSONObject();
+            json.put("encryptedValue", encryptedValue);
+            json.put("clientCount", clientCount);
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(CENTER_SERVER_URL + "/post/aggregatedCipherText"))
-                    .header("Content-Type", "text/plain")
+                    .header("Content-Type", "application/json")
                     .header("Server-Type", "server4")
-                    .POST(HttpRequest.BodyPublishers.ofString(encryptedValue))
+                    .POST(HttpRequest.BodyPublishers.ofString(json.toString()))
                     .build();
-
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
             System.out.println("Center Server响应状态码: " + response.statusCode());
             System.out.println("Center Server响应内容: " + response.body());
-
             if (response.statusCode() != 200) {
                 System.err.println("Failed to send encrypted value to center server: " + response.body());
             }
@@ -169,7 +173,7 @@ public class EdgeServer4Manager {
         if (lastImpaillierCipherText == null || lastImpaillierCipherText.isEmpty()) {
             return "No ImprovePaillier cipher text available.";
         }
-        sendEncryptedValueToCenterServer(lastImpaillierCipherText);
+        sendEncryptedValueToCenterServer(lastImpaillierCipherText, lastClientCount);
         return lastImpaillierCipherText;
     }
 
@@ -211,5 +215,48 @@ public class EdgeServer4Manager {
         } catch (Exception e) {
             System.err.println("Error sending compare cipher text to center server: " + e.getMessage());
         }
+    }
+
+    public static void processMeanData(BigDecimal decryptedValue, int clientCount) {
+        if (clientCount > 0) {
+            meanValue = decryptedValue.divide(new BigDecimal(clientCount), 8, RoundingMode.HALF_UP);
+        } else {
+            meanValue = null;
+        }
+    }
+
+    public static String getMeanResult() {
+        if (meanValue == null) {
+            return "Mean Result: 未计算或clientCount为0\n";
+        }
+        return "Mean Result: " + meanValue.setScale(8, RoundingMode.HALF_UP).toPlainString() + "\n";
+    }
+
+    public static void processVarianceData(String squareCipherText, int clientCount) {
+        if (squareCipherText == null || squareCipherText.isEmpty() || clientCount == 0) {
+            ex2Value = null;
+            varianceValue = null;
+            return;
+        }
+        try {
+            BigInteger c = new BigInteger(squareCipherText);
+            BigDecimal sumX2 = Paillier.decrypt(c);
+            ex2Value = sumX2.divide(new BigDecimal(clientCount), 8, RoundingMode.HALF_UP);
+            if (meanValue != null && ex2Value != null) {
+                varianceValue = ex2Value.doubleValue() - Math.pow(meanValue.doubleValue(), 2);
+            } else {
+                varianceValue = null;
+            }
+        } catch (Exception e) {
+            ex2Value = null;
+            varianceValue = null;
+        }
+    }
+
+    public static String getVarianceResult() {
+        if (varianceValue == null) {
+            return "Variance Result: 未计算或数据不足\n";
+        }
+        return "Variance Result: " + String.format("%.8f", varianceValue) + "\n";
     }
 }

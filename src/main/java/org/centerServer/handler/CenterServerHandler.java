@@ -7,6 +7,7 @@ import java.io.OutputStream;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import org.centerServer.utils.CenterServerManager;
+import org.json.JSONObject;
 
 public class CenterServerHandler implements HttpHandler {
     @Override
@@ -31,20 +32,32 @@ public class CenterServerHandler implements HttpHandler {
             System.out.println("处理获取解密文本请求");
             response = CenterServerManager.getDecryptedText();
             System.out.println("响应内容: " + response);
+        } else if (path.equals("/get/meanResult")) {
+            System.out.println("处理获取均值请求");
+            response = CenterServerManager.getMeanResult();
+            System.out.println("响应内容: " + response);
         } else if (path.equals("/post/aggregatedCipherText")) {
             if (exchange.getRequestMethod().equals("POST")) {
                 System.out.println("处理聚合密文POST请求");
-                // 读取请求体中的聚合密文
-                BufferedReader reader = new BufferedReader(new InputStreamReader(exchange.getRequestBody()));
-                String aggregatedCipherText = reader.readLine();
-                String serverType = exchange.getRequestHeaders().getFirst("Server-Type");
-
-                System.out.println("收到来自 " + serverType + " 的密文");
-                System.out.println("密文内容: " + aggregatedCipherText);
-
-                // 处理接收到的聚合密文
-                CenterServerManager.processAggregatedCipherText(serverType, aggregatedCipherText);
-                response = "Success";
+                BufferedReader reader = new BufferedReader(new InputStreamReader(exchange.getRequestBody(), "UTF-8"));
+                StringBuilder sb = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    sb.append(line);
+                }
+                String body = sb.toString();
+                try {
+                    org.json.JSONObject json = new org.json.JSONObject(body);
+                    String encryptedValue = json.getString("encryptedValue");
+                    int clientCount = json.getInt("clientCount");
+                    String serverType = exchange.getRequestHeaders().getFirst("Server-Type");
+                    org.centerServer.utils.CenterServerManager.processAggregatedCipherText(serverType, encryptedValue,
+                            clientCount);
+                    response = "Success";
+                } catch (Exception e) {
+                    sendResponse(exchange, 400, "Invalid JSON or missing fields");
+                    return;
+                }
             } else {
                 System.out.println("非法的HTTP方法: " + exchange.getRequestMethod());
                 sendResponse(exchange, 405, "Method not allowed");

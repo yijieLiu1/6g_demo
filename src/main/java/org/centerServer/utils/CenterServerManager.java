@@ -3,42 +3,44 @@ package org.centerServer.utils;
 import java.math.BigInteger;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.Map;
 
 public class CenterServerManager {
-    private static String receivedCipherTextFromServer2 = "";
-    private static String receivedCipherTextFromServer4 = "";
+    // 用于存储所有收到的密文，key为serverType，value为密文
+    private static final Map<String, String> receivedCipherTextMap = new ConcurrentHashMap<>();
     private static String aggregatedCipherText = "";
     private static String decryptedText = "";
     private static final int SCALE = 8; // 保留8位小数
     // 新增：存储来自edgeServer2和4的比较密文
     private static String compareCipherTextFromServer2 = "";
     private static String compareCipherTextFromServer4 = "";
+    private static final Map<String, Integer> clientCountMap = new ConcurrentHashMap<>();
 
-    public static void processAggregatedCipherText(String serverType, String cipherText) {
-        if (serverType.equals("server2")) {
-            receivedCipherTextFromServer2 = cipherText;
-        } else if (serverType.equals("server4")) {
-            receivedCipherTextFromServer4 = cipherText;
-        }
-
-        // 如果两个服务器的密文都已收到，则进行聚合
-        if (!receivedCipherTextFromServer2.isEmpty() && !receivedCipherTextFromServer4.isEmpty()) {
+    public static void processAggregatedCipherText(String serverType, String cipherText, int clientCount) {
+        receivedCipherTextMap.put(serverType, cipherText);
+        clientCountMap.put(serverType, clientCount);
+        // 如果收到的密文数大于等于2，才进行聚合
+        if (receivedCipherTextMap.size() >= 2) {
             try {
-                BigInteger c1 = new BigInteger(receivedCipherTextFromServer2);
-                BigInteger c2 = new BigInteger(receivedCipherTextFromServer4);
-
-                // 在模n^2下进行乘法运算（对应明文加法）
-                BigInteger n2 = ImprovePaillier.getN().multiply(ImprovePaillier.getN());
-                BigInteger result = c1.multiply(c2).mod(n2);
+                java.util.Collection<String> values = receivedCipherTextMap.values();
+                java.math.BigInteger result = null;
+                java.math.BigInteger n2 = org.centerServer.utils.ImprovePaillier.getN()
+                        .multiply(org.centerServer.utils.ImprovePaillier.getN());
+                for (String v : values) {
+                    java.math.BigInteger c = new java.math.BigInteger(v);
+                    if (result == null) {
+                        result = c;
+                    } else {
+                        result = result.multiply(c).mod(n2);
+                    }
+                }
                 aggregatedCipherText = result.toString();
-
-                // 使用SK_DO解密
-                BigInteger decryptedBigInt = ImprovePaillier.decrypt(result);
-                // 将BigInteger转换为BigDecimal（除以10^8）
-                BigDecimal m = new BigDecimal(decryptedBigInt).divide(BigDecimal.TEN.pow(SCALE), SCALE,
-                        RoundingMode.HALF_UP);
-                decryptedText = m.setScale(2, RoundingMode.HALF_UP).toPlainString();
-
+                // 解密
+                java.math.BigInteger decryptedBigInt = org.centerServer.utils.ImprovePaillier.decrypt(result);
+                java.math.BigDecimal m = new java.math.BigDecimal(decryptedBigInt)
+                        .divide(java.math.BigDecimal.TEN.pow(SCALE), SCALE, java.math.RoundingMode.HALF_UP);
+                decryptedText = m.setScale(2, java.math.RoundingMode.HALF_UP).toPlainString();
                 System.out.println("Center Server解密结果: " + decryptedText);
             } catch (Exception e) {
                 System.err.println("Center Server处理密文错误: " + e.getMessage());
@@ -50,10 +52,10 @@ public class CenterServerManager {
     public static String getDecryptedText() {
         StringBuilder response = new StringBuilder();
         response.append("Center Server状态:\n");
-        response.append("Server2密文: ")
-                .append(receivedCipherTextFromServer2.isEmpty() ? "未收到" : receivedCipherTextFromServer2).append("\n");
-        response.append("Server4密文: ")
-                .append(receivedCipherTextFromServer4.isEmpty() ? "未收到" : receivedCipherTextFromServer4).append("\n");
+        for (Map.Entry<String, String> entry : receivedCipherTextMap.entrySet()) {
+            response.append(entry.getKey()).append("密文: ")
+                    .append(entry.getValue().isEmpty() ? "未收到" : entry.getValue()).append("\n");
+        }
         response.append("聚合密文: ").append(aggregatedCipherText.isEmpty() ? "未生成" : aggregatedCipherText).append("\n");
         response.append("解密结果: ").append(decryptedText.isEmpty() ? "未解密" : decryptedText);
         return response.toString();
@@ -92,6 +94,22 @@ public class CenterServerManager {
                     dec4.toPlainString(), sum.toPlainString(), result);
         } catch (Exception e) {
             return "比较解密出错: " + e.getMessage();
+        }
+    }
+
+    // 新增：获取均值方法
+    public static String getMeanResult() {
+        int totalClientCount = clientCountMap.values().stream().mapToInt(Integer::intValue).sum();
+        if (totalClientCount == 0 || decryptedText.isEmpty()) {
+            return "尚未收到足够的密文或明文结果未生成";
+        }
+        try {
+            java.math.BigDecimal sum = new java.math.BigDecimal(decryptedText);
+            java.math.BigDecimal mean = sum.divide(java.math.BigDecimal.valueOf(totalClientCount), 8,
+                    java.math.RoundingMode.HALF_UP);
+            return "当前均值: " + mean.toPlainString();
+        } catch (Exception e) {
+            return "均值计算出错: " + e.getMessage();
         }
     }
 }

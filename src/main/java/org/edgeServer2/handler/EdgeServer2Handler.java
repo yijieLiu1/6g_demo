@@ -22,13 +22,25 @@ public class EdgeServer2Handler implements HttpHandler {
 
         else if (path.equals("/post/aggregatedCipherText")) {
             if (exchange.getRequestMethod().equals("POST")) {
-                // 读取请求体中的聚合密文
-                BufferedReader reader = new BufferedReader(new InputStreamReader(exchange.getRequestBody()));
-                String aggregatedCipherText = reader.readLine();
-
-                // 处理接收到的聚合密文
-                EdgeServer2Manager.processAggregatedCipherText(aggregatedCipherText);
-                response = "Success";
+                BufferedReader reader = new BufferedReader(new InputStreamReader(exchange.getRequestBody(), "UTF-8"));
+                StringBuilder sb = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    sb.append(line);
+                }
+                String body = sb.toString();
+                try {
+                    org.json.JSONObject json = new org.json.JSONObject(body);
+                    String aggregatedCipherText = json.getString("cipherText");
+                    String squareCipherText = json.getString("squareCipherText");
+                    int clientCount = json.getInt("clientCount");
+                    EdgeServer2Manager.processAggregatedCipherText(aggregatedCipherText, clientCount);
+                    EdgeServer2Manager.processVarianceData(squareCipherText, clientCount);
+                    response = "Success";
+                } catch (Exception e) {
+                    sendResponse(exchange, 400, "Invalid JSON or missing fields");
+                    return;
+                }
             } else {
                 sendResponse(exchange, 405, "Method not allowed");
                 return;
@@ -63,7 +75,15 @@ public class EdgeServer2Handler implements HttpHandler {
         }
 
         else if (path.equals("/get/compareCipherText")) {
-            response = org.edgeServer2.utils.EdgeServer2Manager.generateAndSendCompareCipherText();
+            response = EdgeServer2Manager.generateAndSendCompareCipherText();
+        }
+
+        else if (path.equals("/get/meanResult")) {
+            response = EdgeServer2Manager.getMeanResult();
+        }
+
+        else if (path.equals("/get/varianceResult")) {
+            response = EdgeServer2Manager.getVarianceResult();
         }
 
         else {

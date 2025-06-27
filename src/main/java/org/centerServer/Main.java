@@ -21,6 +21,7 @@ public class Main {
             System.out.println("注册路由...");
             server.createContext("/get/decryptedText", centerServerHandler);
             server.createContext("/get/compareResult", centerServerHandler);
+            server.createContext("/get/meanResult", centerServerHandler);
             server.createContext("/post/compareCipherText", centerServerHandler);
             server.createContext("/post/aggregatedCipherText", centerServerHandler);
             System.out.println("路由注册完成");

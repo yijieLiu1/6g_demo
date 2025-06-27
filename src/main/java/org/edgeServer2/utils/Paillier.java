@@ -32,7 +32,7 @@ public class Paillier {
     public static BigInteger encrypt(BigDecimal m) {
         // 将小数转换为整数（乘以10^8保留8位小数）
         BigDecimal scaled = m.setScale(SCALE, RoundingMode.HALF_UP);
-        BigInteger m_int = scaled.multiply(BigDecimal.TEN.pow(SCALE)).toBigInteger();
+        BigInteger m_int = scaled.multiply(BigDecimal.TEN.pow(SCALE)).setScale(0, RoundingMode.HALF_UP).toBigInteger();
 
         // 只对负数使用模n对称表示
         if (m_int.compareTo(BigInteger.ZERO) < 0) {

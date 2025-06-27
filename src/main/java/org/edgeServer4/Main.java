@@ -18,6 +18,9 @@ public class Main {
             server.createContext("/get/receivedCipherText", edgeServer4Handler);
             server.createContext("/get/impaillierCipherText", edgeServer4Handler);
             server.createContext("/get/compareCipherText", edgeServer4Handler);
+            server.createContext("/get/meanResult", edgeServer4Handler);
+            server.createContext("/get/varianceResult", edgeServer4Handler);
+
             server.createContext("/post/aggregatedCipherText", edgeServer4Handler);
             server.createContext("/get/compareResult", edgeServer4Handler);
             server.createContext("/post/comparisonData", edgeServer4Handler);

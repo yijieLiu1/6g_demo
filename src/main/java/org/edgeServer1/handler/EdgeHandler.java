@@ -38,18 +38,31 @@ public class EdgeHandler implements HttpHandler {
             }
             response = EdgeManager.generateAndSendComparisonCipherText(clientId1, clientId2);
         } else if (path.equals("/get/sumcipherText")) {
-            response = "sumcipherText:" + EdgeManager.getAggregatedCipherText();
-        }
-
-        else if (path.equals("/post/cipherText")) {
+            // 输出两个聚合密文
+            String cipherText = EdgeManager.getAggregatedCipherText();
+            String squareCipherText = EdgeManager.getAggregatedSquareCipherText();
+            response = "sumcipherText:{\"cipherText\":\"" + cipherText + "\",\"squareCipherText\":\"" + squareCipherText
+                    + "\"}";
+        } else if (path.equals("/post/cipherText")) {
             if (exchange.getRequestMethod().equals("POST")) {
                 // 读取请求体中的密文
-                BufferedReader reader = new BufferedReader(new InputStreamReader(exchange.getRequestBody()));
-                String cipherText = reader.readLine();
-
-                // 注册或更新客户端密文
-                EdgeManager.registerClient(clientId, cipherText);
-                response = "Success";
+                BufferedReader reader = new BufferedReader(new InputStreamReader(exchange.getRequestBody(), "UTF-8"));
+                StringBuilder sb = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    sb.append(line);
+                }
+                String body = sb.toString();
+                try {
+                    org.json.JSONObject json = new org.json.JSONObject(body);
+                    String cipherText = json.getString("cipherText");
+                    String squareCipherText = json.getString("squareCipherText");
+                    EdgeManager.registerClient(clientId, cipherText, squareCipherText);
+                    response = "Success";
+                } catch (Exception e) {
+                    sendResponse(exchange, 400, "Invalid JSON or missing fields");
+                    return;
+                }
             } else {
                 sendResponse(exchange, 405, "Method not allowed");
                 return;

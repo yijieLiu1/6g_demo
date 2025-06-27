@@ -56,10 +56,10 @@ public class DataHandler implements HttpHandler {
 
         } else if (path.equals("/get/cipherText")) {
             String cipherText = dataManager.getCipherData().toString();
-            response = "cipherText:" + cipherText;
-
-            // 发送密文到edgeServer
-            sendCipherTextToEdgeServer(clientId, cipherText);
+            String squareCipherText = dataManager.getSquareCipherData().toString();
+            response = "cipherText:" + cipherText + ", squareCipherText:" + squareCipherText;
+            // 发送密文和x^2密文到edgeServer
+            sendCipherTextToEdgeServer(clientId, cipherText, squareCipherText);
         } else {
             sendResponse(exchange, 404, "Path not found");
             return;
@@ -68,7 +68,7 @@ public class DataHandler implements HttpHandler {
         sendResponse(exchange, 200, response);
     }
 
-    private void sendCipherTextToEdgeServer(String clientId, String cipherText) {
+    private void sendCipherTextToEdgeServer(String clientId, String cipherText, String squareCipherText) {
         try {
             String url;
             if (clientId.equals("test-client3") || clientId.equals("test-client4")) {
@@ -76,10 +76,14 @@ public class DataHandler implements HttpHandler {
             } else {
                 url = EDGE_SERVER_URL + "/post/cipherText";
             }
+            org.json.JSONObject json = new org.json.JSONObject();
+            json.put("cipherText", cipherText);
+            json.put("squareCipherText", squareCipherText);
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(url))
                     .header("Client-ID", clientId)
-                    .POST(HttpRequest.BodyPublishers.ofString(cipherText))
+                    .header("Content-Type", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(json.toString()))
                     .build();
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() != 200) {
