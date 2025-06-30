@@ -25,7 +25,7 @@ public class EdgeServer2Manager {
     private static String lastImpaillierCipherText = "";
     private static BigDecimal meanValue = null;
     private static BigDecimal ex2Value = null;
-    private static Double varianceValue = null;
+    private static BigDecimal varianceValue = null;
     private static int lastClientCount = 0;
 
     public static void processAggregatedCipherText(String cipherText, int clientCount) {
@@ -69,8 +69,13 @@ public class EdgeServer2Manager {
             BigDecimal sumX2 = Paillier.decrypt(c);
             System.out.println("Sum of squares decrypted: " + sumX2);
             ex2Value = sumX2.divide(new BigDecimal(clientCount), 8, RoundingMode.HALF_UP);
+            System.out.println("Ex2 Value: " + ex2Value);
+
             if (meanValue != null && ex2Value != null) {
-                varianceValue = ex2Value.doubleValue() - Math.pow(meanValue.doubleValue(), 2);
+                BigDecimal meanValueSquared = meanValue.pow(2);
+                System.out.println("Mean Value Squared: " + meanValueSquared);
+                varianceValue = ex2Value.subtract(meanValueSquared);
+                System.out.println("Variance Value: " + varianceValue);
             } else {
                 varianceValue = null;
             }
@@ -252,6 +257,6 @@ public class EdgeServer2Manager {
         if (varianceValue == null) {
             return "Variance Result: 未计算或数据不足\n";
         }
-        return "Variance Result: " + String.format("%.8f", varianceValue) + "\n";
+        return "方差结果: " + varianceValue.setScale(8, RoundingMode.HALF_UP).toPlainString() + "\n";
     }
 }

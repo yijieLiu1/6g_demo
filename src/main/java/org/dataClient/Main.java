@@ -41,10 +41,10 @@ public class Main {
             System.out.println("Server started on port " + PORT);
 
             // 示例：注册测试客户端，包括正数、负数和小数
-            DataHandler.registerClient("test-client", new BigDecimal("-2.45"));
+            DataHandler.registerClient("test-client", new BigDecimal("22.45"));
             DataHandler.registerClient("test-client2", new BigDecimal("13.45"));
-            DataHandler.registerClient("test-client3", new BigDecimal("-23.01"));
-            DataHandler.registerClient("test-client4", new BigDecimal("-12.45"));
+            DataHandler.registerClient("test-client3", new BigDecimal("123.01"));
+            DataHandler.registerClient("test-client4", new BigDecimal("212.45"));
 
         } catch (IOException e) {
             System.err.println("Error starting server: " + e.getMessage());
