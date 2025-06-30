@@ -17,7 +17,9 @@ import org.dataClient.utils.Paillier;
 public class DataHandler implements HttpHandler {
     private static final ConcurrentHashMap<String, DataManager> clients = new ConcurrentHashMap<>();
     private static final String EDGE_SERVER_URL = "http://localhost:23456";
+    private static final String EDGE_SERVER3_URL = "http://localhost:24567";
     private static final HttpClient httpClient = HttpClient.newHttpClient();
+    public static int totalClientCount = 0; // 新增：总客户端数
 
     // 新增：新Paillier密钥参数
     private static final BigInteger NEW_PAILLIER_N = new BigInteger(
@@ -32,6 +34,21 @@ public class DataHandler implements HttpHandler {
 
     private static final Paillier NEW_PAILLIER = new Paillier(NEW_PAILLIER_N, NEW_PAILLIER_G, NEW_PAILLIER_LAMBDA,
             NEW_PAILLIER_MU, NEW_PAILLIER_SCALE);
+
+    /**
+     * 根据客户端ID判断是否应用新密钥和新路由规则
+     */
+    private boolean shouldUseNewKeyAndRoute(String clientId) {
+        if (clientId == null || !clientId.startsWith("client-")) {
+            return false;
+        }
+        try {
+            int id = Integer.parseInt(clientId.substring(7));
+            return id > totalClientCount / 2;
+        } catch (NumberFormatException e) {
+            return false;
+        }
+    }
 
     @Override
     public void handle(HttpExchange exchange) throws IOException {
@@ -71,8 +88,9 @@ public class DataHandler implements HttpHandler {
     private void sendCipherTextToEdgeServer(String clientId, String cipherText, String squareCipherText) {
         try {
             String url;
-            if (clientId.equals("test-client3") || clientId.equals("test-client4")) {
-                url = "http://localhost:24567/post/cipherText";
+            if (shouldUseNewKeyAndRoute(clientId)) {
+                // 使用新密钥的客户端发送到 edgeServer3
+                url = EDGE_SERVER3_URL + "/post/cipherText";
             } else {
                 url = EDGE_SERVER_URL + "/post/cipherText";
             }
@@ -95,7 +113,18 @@ public class DataHandler implements HttpHandler {
     }
 
     public static void registerClient(String clientId, BigDecimal initialData) {
-        if (clientId.equals("test-client3") || clientId.equals("test-client4")) {
+        boolean useNewKey = false;
+        if (clientId.startsWith("client-")) {
+            try {
+                int id = Integer.parseInt(clientId.substring(7));
+                if (id > totalClientCount / 2) {
+                    useNewKey = true;
+                }
+            } catch (NumberFormatException e) {
+                // ignore
+            }
+        }
+        if (useNewKey) {
             clients.put(clientId, DataManager.getInstance(clientId, initialData, NEW_PAILLIER));
         } else {
             clients.put(clientId, DataManager.getInstance(clientId, initialData, null));

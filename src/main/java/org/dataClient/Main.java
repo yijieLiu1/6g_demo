@@ -2,8 +2,13 @@ package org.dataClient;
 
 import com.sun.net.httpserver.HttpServer;
 
+import java.io.BufferedReader;
+import java.io.FileReader;
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.dataClient.handler.DataHandler;
 
@@ -40,15 +45,37 @@ public class Main {
             server.start();
             System.out.println("Server started on port " + PORT);
 
-            // 示例：注册测试客户端，包括正数、负数和小数
-            DataHandler.registerClient("test-client", new BigDecimal("22.45"));
-            DataHandler.registerClient("test-client2", new BigDecimal("13.45"));
-            DataHandler.registerClient("test-client3", new BigDecimal("123.01"));
-            DataHandler.registerClient("test-client4", new BigDecimal("212.45"));
+            // 从文件加载和注册客户端
+            registerClientsFromFile("data.txt");
 
         } catch (IOException e) {
             System.err.println("Error starting server: " + e.getMessage());
             e.printStackTrace();
+        }
+    }
+
+    private static void registerClientsFromFile(String filePath) {
+        List<String> clientData = new ArrayList<>();
+        try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                clientData.add(line.trim());
+            }
+        } catch (IOException e) {
+            System.err.println("Error reading client data file: " + e.getMessage());
+            e.printStackTrace();
+            return;
+        }
+        org.dataClient.handler.DataHandler.totalClientCount = clientData.size();
+        for (int i = 0; i < clientData.size(); i++) {
+            try {
+                BigDecimal data = new BigDecimal(clientData.get(i));
+                String clientId = "client-" + (i + 1);
+                DataHandler.registerClient(clientId, data);
+                System.out.println("Registered client: " + clientId + " with data: " + data);
+            } catch (NumberFormatException e) {
+                System.err.println("Invalid number format for client " + (i + 1) + ": " + clientData.get(i));
+            }
         }
     }
 }
