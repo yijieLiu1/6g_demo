@@ -19,7 +19,7 @@ public class DataHandler implements HttpHandler {
     private static final String EDGE_SERVER_URL = "http://localhost:23456";
     private static final String EDGE_SERVER3_URL = "http://localhost:24567";
     private static final HttpClient httpClient = HttpClient.newHttpClient();
-    public static int totalClientCount = 0; // 新增：总客户端数
+    public static int totalClientCount = 127008; // 新增：总客户端数
 
     // 新增：新Paillier密钥参数
     private static final BigInteger NEW_PAILLIER_N = new BigInteger(

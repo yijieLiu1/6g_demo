@@ -16,8 +16,8 @@ import java.util.concurrent.TimeUnit;
 public class ClientSimulator {
 
     private static final String SERVER_URL = "http://localhost:13456/get/cipherText";
-    private static final String DATA_FILE = "data.txt";
-    private static final int NUM_THREADS = 10; // Number of concurrent clients
+    private static final String DATA_FILE = "data.csv";
+    private static final int NUM_THREADS = 100; // 并发线程数
 
     public static void main(String[] args) {
         List<String> clientIds = getClientIdsFromFile(DATA_FILE);
@@ -44,7 +44,7 @@ public class ClientSimulator {
 
                     if (response.statusCode() == 200) {
                         System.out.println(
-                                "Client " + clientId + " successfully sent data. Server response: " + response.body());
+                                "Client " + clientId + " successfully sent data. Server response: ");
                     } else {
                         System.err.println("Client " + clientId + " failed. Status code: " + response.statusCode()
                                 + ", Response: " + response.body());
@@ -59,7 +59,7 @@ public class ClientSimulator {
         // Shutdown the executor
         executor.shutdown();
         try {
-            if (!executor.awaitTermination(60, TimeUnit.SECONDS)) {
+            if (!executor.awaitTermination(1, TimeUnit.HOURS)) {
                 executor.shutdownNow();
             }
         } catch (InterruptedException e) {
@@ -73,7 +73,8 @@ public class ClientSimulator {
         List<String> clientIds = new ArrayList<>();
         int clientCount = 0;
         try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
-            while (br.readLine() != null) {
+            String line;
+            while ((line = br.readLine()) != null) {
                 clientCount++;
                 clientIds.add("client-" + clientCount);
             }

@@ -12,6 +12,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.edgeServer1.utils.EdgeManager;
 
 public class EdgeHandler implements HttpHandler {
+    private static volatile boolean alreadyTriggered = false;
     private static final ConcurrentHashMap<String, EdgeManager> clients = new ConcurrentHashMap<>();
 
     @Override
@@ -58,6 +59,7 @@ public class EdgeHandler implements HttpHandler {
                     String cipherText = json.getString("cipherText");
                     String squareCipherText = json.getString("squareCipherText");
                     EdgeManager.registerClient(clientId, cipherText, squareCipherText);
+
                     response = "Success";
                 } catch (Exception e) {
                     sendResponse(exchange, 400, "Invalid JSON or missing fields");
@@ -67,6 +69,29 @@ public class EdgeHandler implements HttpHandler {
                 sendResponse(exchange, 405, "Method not allowed");
                 return;
             }
+        } else if (path.equals("/post/triggerCompare")) {
+
+            if (exchange.getRequestMethod().equals("POST")) {
+                java.util.List<org.edgeServer1.ComparisonCipherTextBatchSender.ComparisonCipherText> cmpList = new java.util.ArrayList<>();
+                java.util.List<String> clientIds = org.edgeServer1.utils.EdgeManager.getAllClientIds();
+                // 按 client-数字 升序排序，确保顺序一致
+                clientIds.sort(java.util.Comparator.comparingInt(id -> Integer.parseInt(id.replace("client-", ""))));
+                for (int i = 0; i < clientIds.size() - 1; i++) {
+                    String c1 = clientIds.get(i);
+                    String c2 = clientIds.get(i + 1);
+                    String cmpCipher = org.edgeServer1.utils.EdgeManager.generateAndSendComparisonCipherText(c1, c2);
+
+                    if (!cmpCipher.startsWith("Error:")) {
+                        cmpList.add(new org.edgeServer1.ComparisonCipherTextBatchSender.ComparisonCipherText(c1, c2,
+                                cmpCipher));
+                    }
+                }
+                org.edgeServer1.ComparisonCipherTextBatchSender.sendBatch(cmpList);
+                sendResponse(exchange, 200, "批量比较已触发");
+            } else {
+                sendResponse(exchange, 405, "Method not allowed");
+            }
+            return;
         } else {
             sendResponse(exchange, 404, "Path not found");
             return;

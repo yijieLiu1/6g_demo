@@ -8,6 +8,12 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.net.URI;
 import org.json.JSONObject;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.List;
+import java.util.Collections;
+import java.util.ArrayList;
 
 public class EdgeServer2Manager {
     private static String receivedCipherText = "";
@@ -27,6 +33,11 @@ public class EdgeServer2Manager {
     private static BigDecimal ex2Value = null;
     private static BigDecimal varianceValue = null;
     private static int lastClientCount = 0;
+    private static final java.util.Map<String, BigDecimal> clientValueMap = new java.util.HashMap<>();
+
+    // === 冒泡极值推导结构 ===
+    private static final java.util.Map<String, String> compareMap = new java.util.LinkedHashMap<>();
+    private static final java.util.Set<String> clientIdSet = new java.util.HashSet<>();
 
     public static void processAggregatedCipherText(String cipherText, int clientCount) {
         lastClientCount = clientCount;
@@ -87,6 +98,12 @@ public class EdgeServer2Manager {
 
     public static void processComparisonData(String cipherText, String clientId1, String clientId2) {
         try {
+            // 幂等性保护：只处理每对client的第一条比较密文
+            String key = clientId1 + "," + clientId2;
+            if (compareMap.containsKey(key)) {
+                // 已处理过，直接丢弃
+                return;
+            }
             BigInteger c = new BigInteger(cipherText);
             BigDecimal m_blinded = Paillier.decrypt(c);
             BigInteger M = m_blinded.toBigInteger();
@@ -94,33 +111,48 @@ public class EdgeServer2Manager {
             BigInteger halfN = n.divide(BigInteger.TWO);
             String outcome;
 
+            // === 记录相邻比较结果 ===
+            clientIdSet.add(clientId1);
+            clientIdSet.add(clientId2);
+            if (M.compareTo(BigInteger.ZERO) < 0) {
+                compareMap.put(key, "lt"); // clientId1 < clientId2
+            } else {
+                compareMap.put(key, "gt"); // clientId1 > clientId2
+            }
+
             if (M.compareTo(BigInteger.ZERO) < 0) {
                 outcome = String.format("\n客户端 %s 的数小于客户端 %s.", clientId1, clientId2);
             } else {
                 outcome = String.format("\n客户端 %s 的数大于客户端 %s.", clientId1, clientId2);
             }
 
-            lastComparisonResult = new ComparisonResult();
-            lastComparisonResult.decryptedValue = M.toString();
-            lastComparisonResult.outcomeMessage = outcome;
-
             System.out.println("Comparison processed. Decrypted value: " + M + ". Outcome: " + outcome);
         } catch (Exception e) {
-            lastComparisonResult = new ComparisonResult();
-            lastComparisonResult.decryptedValue = "Error";
-            lastComparisonResult.outcomeMessage = "Error processing comparison: " + e.getMessage();
             e.printStackTrace();
         }
     }
 
     public static String getCompareResult() {
-        if (lastComparisonResult == null) {
-            return "No comparison has been performed yet.";
+        // 1. 提取所有client编号并排序
+        List<Integer> clientNums = new ArrayList<>();
+        for (String id : clientIdSet) {
+            clientNums.add(Integer.parseInt(id.replace("client-", "")));
         }
-        return String.format(
-                "Decrypted Value (De[En(r1*(m1-m2)+r2)]): %s\nComparison Result: %s",
-                lastComparisonResult.decryptedValue,
-                lastComparisonResult.outcomeMessage);
+        Collections.sort(clientNums);
+
+        // 2. 顺序遍历，推导极值
+        String minId = "client-" + clientNums.get(0);
+        String maxId = "client-" + clientNums.get(clientNums.size() - 1);
+
+        // 3. （可选）顺序输出所有比较结果
+        for (int i = 0; i < clientNums.size() - 1; i++) {
+            String key = "client-" + clientNums.get(i) + ",client-" + clientNums.get(i + 1);
+            String cmp = compareMap.get(key);
+            System.out.println(key + "=" + cmp);
+        }
+
+        // 4. 返回极值
+        return String.format("最大值 clientId: %s, 最小值 clientId: %s", maxId, minId);
     }
 
     private static void sendEncryptedValueToCenterServer(String encryptedValue, int clientCount) {
@@ -259,4 +291,7 @@ public class EdgeServer2Manager {
         }
         return "方差结果: " + varianceValue.setScale(8, RoundingMode.HALF_UP).toPlainString() + "\n";
     }
+
+    // 链式极值推导结构重置
+
 }

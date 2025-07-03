@@ -12,7 +12,7 @@ import org.edgeServer2.utils.Paillier;
 import org.json.JSONObject;
 
 public class EdgeManager {
-    private static final ConcurrentHashMap<String, String> clientCipherTexts = new ConcurrentHashMap<>();
+    static final ConcurrentHashMap<String, String> clientCipherTexts = new ConcurrentHashMap<>();
     private static String aggregatedCipherText = "";
     private static final ConcurrentHashMap<String, String> clientSquareCipherTexts = new ConcurrentHashMap<>();
     private static String aggregatedSquareCipherText = "";
@@ -163,5 +163,9 @@ public class EdgeManager {
 
     public static int getClientCount() {
         return clientCipherTexts.size();
+    }
+
+    public static java.util.List<String> getAllClientIds() {
+        return new java.util.ArrayList<>(clientCipherTexts.keySet());
     }
 }

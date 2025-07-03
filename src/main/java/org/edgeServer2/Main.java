@@ -26,7 +26,7 @@ public class Main {
             server.createContext("/post/comparisonData", edgeServer2Handler);
 
             // 设置线程池
-            server.setExecutor(null);
+            server.setExecutor(java.util.concurrent.Executors.newFixedThreadPool(56));
 
             // 启动服务器
             server.start();

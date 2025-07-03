@@ -17,10 +17,11 @@ public class Main {
             server.createContext("/get/totalclientNum", edgeHandler);
             server.createContext("/get/sumcipherText", edgeHandler);
             server.createContext("/post/cipherText", edgeHandler);
+            server.createContext("/post/triggerCompare", edgeHandler);
             server.createContext("/get/compareCipherText", edgeHandler);
 
             // 设置线程池
-            server.setExecutor(null);
+            server.setExecutor(java.util.concurrent.Executors.newFixedThreadPool(56));
 
             // 启动服务器
             server.start();
