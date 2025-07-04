@@ -23,16 +23,6 @@ public class EdgeHandler implements HttpHandler {
         String response;
         if (path.equals("/get/totalclientNum")) {
             response = "totalclientNum:" + String.valueOf(EdgeManager.getClientCount());
-        } else if (path.equals("/get/compareCipherText")) {
-            Map<String, String> params = queryToMap(exchange.getRequestURI().getQuery());
-            String clientId1 = params.get("client1");
-            String clientId2 = params.get("client2");
-
-            if (clientId1 == null || clientId2 == null) {
-                sendResponse(exchange, 400, "Missing client1 or client2 query parameter.");
-                return;
-            }
-            response = EdgeManager.generateAndSendComparisonCipherText(clientId1, clientId2);
         } else if (path.equals("/get/sumcipherText")) {
             // 输出两个聚合密文
             String cipherText = EdgeManager.getAggregatedCipherText();
@@ -66,6 +56,7 @@ public class EdgeHandler implements HttpHandler {
                 return;
             }
         } else if (path.equals("/post/triggerCompare")) {
+            System.out.println("开始执行/post/triggerCompare.....");
             if (exchange.getRequestMethod().equals("POST")) {
                 try {
                     java.util.List<org.edgeServer1.ComparisonCipherTextBatchSender.ComparisonCipherText> cmpList = new java.util.ArrayList<>();
@@ -91,29 +82,99 @@ public class EdgeHandler implements HttpHandler {
                 sendResponse(exchange, 405, "Method not allowed");
             }
             return;
+        } else if (path.equals("/post/comparePair")) {
+            System.out.println("开始执行/post/comparePair.....");
+            if (exchange.getRequestMethod().equals("POST")) {
+                try {
+                    java.util.List<String> clientIds = org.edgeServer1.utils.EdgeManager.getAllClientIds();
+                    if (clientIds.size() < 2) {
+                        sendResponse(exchange, 400, "Not enough clients to compare");
+                        return;
+                    }
+                    int n = clientIds.size();
+                    java.util.List<String> maxCandidates = new java.util.ArrayList<>();
+                    java.util.List<String> minCandidates = new java.util.ArrayList<>();
+                    // 1. 两两分组比较
+                    for (int i = 0; i < n - 1; i += 2) {
+                        String a = clientIds.get(i);
+                        String b = clientIds.get(i + 1);
+                        System.out.println("[comparePair] 分组: " + a + " vs " + b);
+                        String cmpCipher = org.edgeServer1.utils.EdgeManager.generateAndSendComparisonCipherText(a, b);
+                        String compareResult = org.edgeServer1.utils.ComparePairClient.sendComparePairToEdgeServer2(a,
+                                b, cmpCipher);
+                        while (compareResult == null) {
+                            System.out.println("[comparePair] 网络或服务端异常，重试: " + a + " vs " + b);
+                            compareResult = org.edgeServer1.utils.ComparePairClient.sendComparePairToEdgeServer2(a, b,
+                                    cmpCipher);
+                        }
+                        org.json.JSONObject resultJson = new org.json.JSONObject(compareResult);
+                        String bigger = resultJson.getString("bigger");
+                        String smaller = resultJson.getString("smaller");
+                        System.out.println("[comparePair] 结果: bigger=" + bigger + ", smaller=" + smaller);
+                        maxCandidates.add(bigger);
+                        minCandidates.add(smaller);
+                    }
+                    if (n % 2 == 1) {
+                        String last = clientIds.get(n - 1);
+                        System.out.println("[comparePair] 奇数个，最后一个 " + last + " 进入两个候选区");
+                        maxCandidates.add(last);
+                        minCandidates.add(last);
+                    }
+                    // 2. 在maxCandidates中找最大
+                    String maxId = maxCandidates.get(0);
+                    for (int i = 1; i < maxCandidates.size(); i++) {
+                        String challenger = maxCandidates.get(i);
+                        System.out.println("[comparePair] 最大候选区比较: " + maxId + " vs " + challenger);
+                        String cmpCipher = org.edgeServer1.utils.EdgeManager.generateAndSendComparisonCipherText(maxId,
+                                challenger);
+                        String compareResult = org.edgeServer1.utils.ComparePairClient
+                                .sendComparePairToEdgeServer2(maxId, challenger, cmpCipher);
+                        while (compareResult == null) {
+                            System.out.println("[comparePair] 网络或服务端异常，重试: " + maxId + " vs " + challenger);
+                            compareResult = org.edgeServer1.utils.ComparePairClient.sendComparePairToEdgeServer2(maxId,
+                                    challenger, cmpCipher);
+                        }
+                        org.json.JSONObject resultJson = new org.json.JSONObject(compareResult);
+                        String bigger = resultJson.getString("bigger");
+                        System.out.println("[comparePair] 最大候选区结果: bigger=" + bigger);
+                        maxId = bigger;
+                    }
+                    // 3. 在minCandidates中找最小
+                    String minId = minCandidates.get(0);
+                    for (int i = 1; i < minCandidates.size(); i++) {
+                        String challenger = minCandidates.get(i);
+                        System.out.println("[comparePair] 最小候选区比较: " + minId + " vs " + challenger);
+                        String cmpCipher = org.edgeServer1.utils.EdgeManager.generateAndSendComparisonCipherText(minId,
+                                challenger);
+                        String compareResult = org.edgeServer1.utils.ComparePairClient
+                                .sendComparePairToEdgeServer2(minId, challenger, cmpCipher);
+                        while (compareResult == null) {
+                            System.out.println("[comparePair] 网络或服务端异常，重试: " + minId + " vs " + challenger);
+                            compareResult = org.edgeServer1.utils.ComparePairClient.sendComparePairToEdgeServer2(minId,
+                                    challenger, cmpCipher);
+                        }
+                        org.json.JSONObject resultJson = new org.json.JSONObject(compareResult);
+                        String smaller = resultJson.getString("smaller");
+                        System.out.println("[comparePair] 最小候选区结果: smaller=" + smaller);
+                        minId = smaller;
+                    }
+                    System.out.println("[comparePair] 最终最大值 clientId: " + maxId + ", 最小值 clientId: " + minId);
+                    // 通知edgeServer2保存极值
+                    org.edgeServer1.utils.ComparePairClient.notifyEdgeServer2FinalResult(maxId, minId);
+                    sendResponse(exchange, 200, "极值比较完成");
+                } catch (Exception e) {
+                    sendResponse(exchange, 500, "服务端异常: " + e.getMessage());
+                }
+            } else {
+                sendResponse(exchange, 405, "Method not allowed");
+            }
+            return;
         } else {
             sendResponse(exchange, 404, "Path not found");
             return;
         }
 
         sendResponse(exchange, 200, response);
-    }
-
-    // 用于将URL中的查询字符串转为Map ?client1=XXX &client2=YYY，以正确处理Client-ID值。
-    private Map<String, String> queryToMap(String query) {
-        if (query == null) {
-            return new HashMap<>();
-        }
-        Map<String, String> result = new HashMap<>();
-        for (String param : query.split("&")) {
-            String[] entry = param.split("=");
-            if (entry.length > 1) {
-                result.put(entry[0], entry[1]);
-            } else {
-                result.put(entry[0], "");
-            }
-        }
-        return result;
     }
 
     private void sendResponse(HttpExchange exchange, int statusCode, String response) throws IOException {

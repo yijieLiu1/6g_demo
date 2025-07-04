@@ -71,7 +71,7 @@ public class Main {
             return;
         }
         int total = clientData.size();
-        int THREADS = 100;
+        int THREADS = 120;
         ExecutorService pool = Executors.newFixedThreadPool(THREADS);
         final HttpClient httpClient = HttpClient.newHttpClient();
 
@@ -89,7 +89,7 @@ public class Main {
                 NEW_PAILLIER_SCALE);
 
         final List<String> dataForThreads = clientData;
-        int BATCH_SIZE = 200;
+        int BATCH_SIZE = 300;
         for (int batchStart = 0; batchStart < dataForThreads.size(); batchStart += BATCH_SIZE) {
             int batchEnd = Math.min(batchStart + BATCH_SIZE, dataForThreads.size());
             List<java.util.concurrent.CompletableFuture<Void>> batchFutures = new ArrayList<>();
@@ -132,7 +132,7 @@ public class Main {
             }
             batchFutures.forEach(java.util.concurrent.CompletableFuture::join);
             try {
-                Thread.sleep(400); // 给服务端缓冲
+                Thread.sleep(200); // 给服务端缓冲
             } catch (Exception e) {
                 System.out.println("线程休眠异常: " + e.getMessage());
             }

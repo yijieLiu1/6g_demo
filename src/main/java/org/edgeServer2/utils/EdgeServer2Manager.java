@@ -132,36 +132,36 @@ public class EdgeServer2Manager {
         }
     }
 
-    public static String getCompareResult() {
-        // 统计每个client被击败的次数
-        java.util.Map<String, Integer> defeatedCount = new java.util.HashMap<>();
-        for (String id : clientIdSet) {
-            defeatedCount.put(id, 0);
-        }
-        for (java.util.Map.Entry<String, String> entry : compareMap.entrySet()) {
-            String key = entry.getKey();
-            String cmp = entry.getValue();
-            String[] ids = key.split(",");
-            String id1 = ids[0], id2 = ids[1];
-            if ("gt".equals(cmp)) {
-                // id1 > id2，id2被击败
-                defeatedCount.put(id2, defeatedCount.get(id2) + 1);
-            } else if ("lt".equals(cmp)) {
-                // id1 < id2，id1被击败
-                defeatedCount.put(id1, defeatedCount.get(id1) + 1);
-            }
-        }
-        String maxId = null, minId = null;
-        int n = defeatedCount.size();
-        for (java.util.Map.Entry<String, Integer> entry : defeatedCount.entrySet()) {
-            if (entry.getValue() == 0)
-                maxId = entry.getKey();
-            if (entry.getValue() == n - 1)
-                minId = entry.getKey();
-        }
+    // public static String getCompareResult() {
+    // // 统计每个client被击败的次数
+    // java.util.Map<String, Integer> defeatedCount = new java.util.HashMap<>();
+    // for (String id : clientIdSet) {
+    // defeatedCount.put(id, 0);
+    // }
+    // for (java.util.Map.Entry<String, String> entry : compareMap.entrySet()) {
+    // String key = entry.getKey();
+    // String cmp = entry.getValue();
+    // String[] ids = key.split(",");
+    // String id1 = ids[0], id2 = ids[1];
+    // if ("gt".equals(cmp)) {
+    // // id1 > id2，id2被击败
+    // defeatedCount.put(id2, defeatedCount.get(id2) + 1);
+    // } else if ("lt".equals(cmp)) {
+    // // id1 < id2，id1被击败
+    // defeatedCount.put(id1, defeatedCount.get(id1) + 1);
+    // }
+    // }
+    // String maxId = null, minId = null;
+    // int n = defeatedCount.size();
+    // for (java.util.Map.Entry<String, Integer> entry : defeatedCount.entrySet()) {
+    // if (entry.getValue() == 0)
+    // maxId = entry.getKey();
+    // if (entry.getValue() == n - 1)
+    // minId = entry.getKey();
+    // }
 
-        return String.format("最大值 clientId: %s, 最小值 clientId: %s", maxId, minId);
-    }
+    // return String.format("最大值 clientId: %s, 最小值 clientId: %s", maxId, minId);
+    // }
 
     private static void sendEncryptedValueToCenterServer(String encryptedValue, int clientCount) {
         try {
@@ -298,6 +298,48 @@ public class EdgeServer2Manager {
             return "Variance Result: 未计算或数据不足\n";
         }
         return "方差结果: " + varianceValue.setScale(8, RoundingMode.HALF_UP).toPlainString() + "\n";
+    }
+
+    // 新增：解密比较密文，返回较大clientId
+    private static int compareCount = 0;
+    private static long compareStartTime = 0;
+
+    public static String compareAndGetBigger(String clientId1, String clientId2, String cmpCipher) {
+        try {
+            if (compareCount == 0) {
+                compareStartTime = System.currentTimeMillis();
+            }
+            compareCount++;
+            System.out.println("[compare] 第 " + compareCount + " 次解密: " + clientId1 + " vs " + clientId2);
+            BigInteger c = new BigInteger(cmpCipher);
+            BigDecimal m_blinded = Paillier.decrypt(c);
+            BigInteger M = m_blinded.toBigInteger();
+            if (M.compareTo(BigInteger.ZERO) < 0) {
+                return clientId2;
+            } else {
+                return clientId1;
+            }
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    // 新增：保存最大最小id
+    private static String maxId = null;
+    private static String minId = null;
+
+    public static void saveCompareResult(String max, String min) {
+        maxId = max;
+        minId = min;
+        long cost = System.currentTimeMillis() - compareStartTime;
+        System.out.println("[compare] 总共解密 " + compareCount + " 次，总耗时 " + cost + " ms");
+        compareCount = 0;
+        compareStartTime = 0;
+    }
+
+    // getCompareResult返回最大最小id
+    public static String getCompareResult() {
+        return String.format("最大值 clientId: %s, 最小值 clientId: %s", maxId, minId);
     }
 
     // 链式极值推导结构重置

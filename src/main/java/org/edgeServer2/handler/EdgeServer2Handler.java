@@ -74,16 +74,68 @@ public class EdgeServer2Handler implements HttpHandler {
             response = EdgeServer2Manager.getImpaillierCipherText();
         }
 
-        else if (path.equals("/get/compareCipherText")) {
-            response = EdgeServer2Manager.generateAndSendCompareCipherText();
-        }
-
         else if (path.equals("/get/meanResult")) {
             response = EdgeServer2Manager.getMeanResult();
         }
 
         else if (path.equals("/get/varianceResult")) {
             response = EdgeServer2Manager.getVarianceResult();
+        }
+
+        else if (path.equals("/post/twoClientCompareResult")) {
+            if (exchange.getRequestMethod().equalsIgnoreCase("POST")) {
+                BufferedReader reader = new BufferedReader(new InputStreamReader(exchange.getRequestBody(), "UTF-8"));
+                StringBuilder sb = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    sb.append(line);
+                }
+                String body = sb.toString();
+                try {
+                    org.json.JSONObject json = new org.json.JSONObject(body);
+                    String clientId1 = json.getString("clientId1");
+                    String clientId2 = json.getString("clientId2");
+                    String cmpCipher = json.getString("cmpCipher");
+                    System.out.println("[twoClientCompareResult] 收到比较请求: " + clientId1 + " vs " + clientId2);
+                    String bigger = org.edgeServer2.utils.EdgeServer2Manager.compareAndGetBigger(clientId1, clientId2,
+                            cmpCipher);
+                    String smaller = clientId1.equals(bigger) ? clientId2 : clientId1;
+                    System.out.println("[twoClientCompareResult] 结果: bigger=" + bigger + ", smaller=" + smaller);
+                    org.json.JSONObject result = new org.json.JSONObject();
+                    result.put("bigger", bigger);
+                    result.put("smaller", smaller);
+                    sendResponse(exchange, 200, result.toString());
+                } catch (Exception e) {
+                    sendResponse(exchange, 400, "Invalid JSON or missing fields");
+                }
+            } else {
+                sendResponse(exchange, 405, "Method not allowed");
+            }
+            return;
+        } else if (path.equals("/post/finalCompareResult")) {
+            System.out.println("[finalCompareResult] 收到最终极值保存请求");
+            if (exchange.getRequestMethod().equalsIgnoreCase("POST")) {
+                BufferedReader reader = new BufferedReader(new InputStreamReader(exchange.getRequestBody(), "UTF-8"));
+                StringBuilder sb = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    sb.append(line);
+                }
+                String body = sb.toString();
+                try {
+                    org.json.JSONObject json = new org.json.JSONObject(body);
+                    String maxId = json.getString("maxId");
+                    String minId = json.getString("minId");
+                    System.out.println("[finalCompareResult] 保存极值: maxId=" + maxId + ", minId=" + minId);
+                    org.edgeServer2.utils.EdgeServer2Manager.saveCompareResult(maxId, minId);
+                    sendResponse(exchange, 200, "Final result saved");
+                } catch (Exception e) {
+                    sendResponse(exchange, 400, "Invalid JSON or missing fields");
+                }
+            } else {
+                sendResponse(exchange, 405, "Method not allowed");
+            }
+            return;
         }
 
         else {

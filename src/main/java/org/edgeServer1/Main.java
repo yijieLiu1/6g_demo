@@ -14,11 +14,17 @@ public class Main {
             EdgeHandler edgeHandler = new EdgeHandler();
 
             // 注册路由
+            // 获取client数
             server.createContext("/get/totalclientNum", edgeHandler);
+            // 获取聚合密文并发送
             server.createContext("/get/sumcipherText", edgeHandler);
+            // 为了接收来自client的密文
             server.createContext("/post/cipherText", edgeHandler);
+            // 触发比较
             server.createContext("/post/triggerCompare", edgeHandler);
-            server.createContext("/get/compareCipherText", edgeHandler);
+            // 多轮通信比较密文发送
+            server.createContext("/post/comparePair", edgeHandler);
+            server.createContext("/post/finalCompareResult", edgeHandler);
 
             // 设置线程池
             server.setExecutor(java.util.concurrent.Executors.newFixedThreadPool(56));
