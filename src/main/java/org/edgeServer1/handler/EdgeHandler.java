@@ -20,11 +20,6 @@ public class EdgeHandler implements HttpHandler {
         String path = exchange.getRequestURI().getPath();
         String clientId = exchange.getRequestHeaders().getFirst("Client-ID");
 
-        if (clientId == null) {
-            sendResponse(exchange, 400, "Missing Client-ID header");
-            return;
-        }
-
         String response;
         if (path.equals("/get/totalclientNum")) {
             response = "totalclientNum:" + String.valueOf(EdgeManager.getClientCount());
@@ -41,8 +36,8 @@ public class EdgeHandler implements HttpHandler {
         } else if (path.equals("/get/sumcipherText")) {
             // 输出两个聚合密文
             String cipherText = EdgeManager.getAggregatedCipherText();
-            // 当执行getAggregatedCipherText时，会发送聚合后的密文到edgeServer2
             String squareCipherText = EdgeManager.getAggregatedSquareCipherText();
+            EdgeManager.sendAggregatedCipherTextToEdgeServer2(cipherText, squareCipherText);
             response = "sumcipherText:{\"cipherText\":\"" + cipherText + "\",\"squareCipherText\":\"" + squareCipherText
                     + "\"}";
         } else if (path.equals("/post/cipherText")) {
@@ -71,26 +66,27 @@ public class EdgeHandler implements HttpHandler {
                 return;
             }
         } else if (path.equals("/post/triggerCompare")) {
-
             if (exchange.getRequestMethod().equals("POST")) {
-                java.util.List<org.edgeServer1.ComparisonCipherTextBatchSender.ComparisonCipherText> cmpList = new java.util.ArrayList<>();
-                java.util.List<String> clientIds = org.edgeServer1.utils.EdgeManager.getAllClientIds();
-
-                // 全排列，构建两两比较的密文。
-                for (int i = 0; i < clientIds.size(); i++) {
-                    for (int j = i + 1; j < clientIds.size(); j++) {
-                        String c1 = clientIds.get(i);
-                        String c2 = clientIds.get(j);
-                        String cmpCipher = org.edgeServer1.utils.EdgeManager.generateAndSendComparisonCipherText(c1,
-                                c2);
-                        if (!cmpCipher.startsWith("Error:")) {
-                            cmpList.add(new org.edgeServer1.ComparisonCipherTextBatchSender.ComparisonCipherText(c1, c2,
-                                    cmpCipher));
+                try {
+                    java.util.List<org.edgeServer1.ComparisonCipherTextBatchSender.ComparisonCipherText> cmpList = new java.util.ArrayList<>();
+                    java.util.List<String> clientIds = org.edgeServer1.utils.EdgeManager.getAllClientIds();
+                    for (int i = 0; i < clientIds.size(); i++) {
+                        for (int j = i + 1; j < clientIds.size(); j++) {
+                            String c1 = clientIds.get(i);
+                            String c2 = clientIds.get(j);
+                            String cmpCipher = org.edgeServer1.utils.EdgeManager.generateAndSendComparisonCipherText(c1,
+                                    c2);
+                            if (!cmpCipher.startsWith("Error:")) {
+                                cmpList.add(new org.edgeServer1.ComparisonCipherTextBatchSender.ComparisonCipherText(c1,
+                                        c2, cmpCipher));
+                            }
                         }
                     }
+                    org.edgeServer1.ComparisonCipherTextBatchSender.sendBatch(cmpList);
+                    sendResponse(exchange, 200, "批量比较已触发");
+                } catch (Exception e) {
+                    sendResponse(exchange, 500, "服务端异常: " + e.getMessage());
                 }
-                org.edgeServer1.ComparisonCipherTextBatchSender.sendBatch(cmpList);
-                sendResponse(exchange, 200, "批量比较已触发");
             } else {
                 sendResponse(exchange, 405, "Method not allowed");
             }

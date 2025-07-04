@@ -26,8 +26,7 @@ public class EdgeServer3Manager {
     public static void registerClient(String clientId, String cipherText, String squareCipherText) {
         clientCipherTexts.put(clientId, cipherText);
         clientSquareCipherTexts.put(clientId, squareCipherText);
-        updateAggregatedCipherText();
-        updateAggregatedSquareCipherText();
+
     }
 
     private static void updateAggregatedCipherText() {
@@ -71,11 +70,11 @@ public class EdgeServer3Manager {
         aggregatedSquareCipherText = result.toString();
     }
 
-    private static void sendAggregatedCipherTextToEdgeServer4(String cipherText) {
+    public static void sendAggregatedCipherTextToEdgeServer4(String cipherText, String squareCipherText) {
         try {
             JSONObject json = new JSONObject();
             json.put("cipherText", cipherText);
-            json.put("squareCipherText", getAggregatedSquareCipherText());
+            json.put("squareCipherText", squareCipherText);
             json.put("clientCount", getClientCount());
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(EDGE_SERVER4_URL + "/post/aggregatedCipherText"))
@@ -92,11 +91,13 @@ public class EdgeServer3Manager {
     }
 
     public static String getAggregatedCipherText() {
-        sendAggregatedCipherTextToEdgeServer4(aggregatedCipherText);
+        updateAggregatedCipherText();
+
         return aggregatedCipherText;
     }
 
     public static String getAggregatedSquareCipherText() {
+        updateAggregatedSquareCipherText();
         return aggregatedSquareCipherText;
     }
 

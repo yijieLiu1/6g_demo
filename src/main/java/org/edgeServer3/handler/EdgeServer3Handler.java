@@ -18,11 +18,6 @@ public class EdgeServer3Handler implements HttpHandler {
         String path = exchange.getRequestURI().getPath();
         String clientId = exchange.getRequestHeaders().getFirst("Client-ID");
 
-        if (clientId == null) {
-            sendResponse(exchange, 400, "Missing Client-ID header");
-            return;
-        }
-
         String response;
         if (path.equals("/get/totalclientNum")) {
             response = "totalclientNum:" + String.valueOf(EdgeServer3Manager.getClientCount());
@@ -40,8 +35,10 @@ public class EdgeServer3Handler implements HttpHandler {
             // 输出两个聚合密文
             String cipherText = EdgeServer3Manager.getAggregatedCipherText();
             String squareCipherText = EdgeServer3Manager.getAggregatedSquareCipherText();
+            EdgeServer3Manager.sendAggregatedCipherTextToEdgeServer4(cipherText, squareCipherText);
             response = "sumcipherText:{\"cipherText\":\"" + cipherText + "\",\"squareCipherText\":\"" + squareCipherText
                     + "\"}";
+
         } else if (path.equals("/post/cipherText")) {
             if (exchange.getRequestMethod().equals("POST")) {
                 BufferedReader reader = new BufferedReader(new InputStreamReader(exchange.getRequestBody(), "UTF-8"));
@@ -67,7 +64,7 @@ public class EdgeServer3Handler implements HttpHandler {
             }
         } else if (path.equals("/post/triggerCompare")) {
             if (exchange.getRequestMethod().equals("POST")) {
-                java.util.List<org.edgeServer1.ComparisonCipherTextBatchSender.ComparisonCipherText> cmpList = new java.util.ArrayList<>();
+                java.util.List<org.edgeServer3.ComparisonCipherTextBatchSender.ComparisonCipherText> cmpList = new java.util.ArrayList<>();
                 java.util.List<String> clientIds = org.edgeServer3.utils.EdgeServer3Manager.clientCipherTexts == null
                         ? new java.util.ArrayList<>()
                         : new java.util.ArrayList<>(
@@ -82,12 +79,12 @@ public class EdgeServer3Handler implements HttpHandler {
                         String cmpCipher = org.edgeServer3.utils.EdgeServer3Manager
                                 .generateAndSendComparisonCipherText(c1, c2);
                         if (!cmpCipher.startsWith("Error:")) {
-                            cmpList.add(new org.edgeServer1.ComparisonCipherTextBatchSender.ComparisonCipherText(c1, c2,
+                            cmpList.add(new org.edgeServer3.ComparisonCipherTextBatchSender.ComparisonCipherText(c1, c2,
                                     cmpCipher));
                         }
                     }
                 }
-                org.edgeServer1.ComparisonCipherTextBatchSender.sendBatch(cmpList);
+                org.edgeServer3.ComparisonCipherTextBatchSender.sendBatch(cmpList);
                 sendResponse(exchange, 200, "批量比较已触发");
             } else {
                 sendResponse(exchange, 405, "Method not allowed");

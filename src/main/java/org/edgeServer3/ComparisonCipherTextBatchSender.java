@@ -12,7 +12,7 @@ import java.util.ArrayList;
 import java.time.Duration;
 
 public class ComparisonCipherTextBatchSender {
-    private static final String TARGET_URL = "http://localhost:34567/post/comparisonData"; // edgeServer2
+    private static final String TARGET_URL = "http://localhost:34567/post/comparisonData"; // edgeServer4
 
     public static void sendBatch(List<ComparisonCipherText> comparisonList) {
         int THREADS = 16; // 可根据CPU核数调整
