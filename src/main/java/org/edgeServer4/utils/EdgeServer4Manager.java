@@ -29,6 +29,10 @@ public class EdgeServer4Manager {
 
     private static ComparisonResult lastComparisonResult = null;
 
+    // 比较结果统计结构
+    private static final java.util.Map<String, String> compareMap = new java.util.LinkedHashMap<>();
+    private static final java.util.Set<String> clientIdSet = new java.util.HashSet<>();
+
     public static void processAggregatedCipherText(String cipherText, int clientCount) {
         lastClientCount = clientCount;
         receivedCipherText = cipherText;
@@ -128,44 +132,54 @@ public class EdgeServer4Manager {
         return receivedCipherText.isEmpty() ? "No cipher text received" : receivedCipherText;
     }
 
-    // 处理比较密文
+    // 处理比较密文，记录比较结果
     public static void processComparisonData(String cipherText, String clientId1, String clientId2) {
         try {
+            String key = clientId1 + "," + clientId2;
+            if (compareMap.containsKey(key)) {
+                return;
+            }
             BigInteger c = new BigInteger(cipherText);
             BigDecimal m_blinded = Paillier.decrypt(c);
             BigInteger M = m_blinded.toBigInteger();
-            BigInteger n = Paillier.getPublicKey();
-            BigInteger halfN = n.divide(BigInteger.TWO);
-            String outcome;
-
+            clientIdSet.add(clientId1);
+            clientIdSet.add(clientId2);
             if (M.compareTo(BigInteger.ZERO) < 0) {
-                outcome = String.format("\n客户端 %s 的数小于客户端 %s.", clientId1, clientId2);
+                compareMap.put(key, "lt");
             } else {
-                outcome = String.format("\n客户端 %s 的数大于客户端 %s.", clientId1, clientId2);
+                compareMap.put(key, "gt");
             }
-
-            lastComparisonResult = new ComparisonResult();
-            lastComparisonResult.decryptedValue = M.toString();
-            lastComparisonResult.outcomeMessage = outcome;
-
-            System.out.println("Comparison processed. Decrypted value: " + M + ". Outcome: " + outcome);
         } catch (Exception e) {
-            lastComparisonResult = new ComparisonResult();
-            lastComparisonResult.decryptedValue = "Error";
-            lastComparisonResult.outcomeMessage = "Error processing comparison: " + e.getMessage();
             e.printStackTrace();
         }
     }
 
-    // 获取最近一次比较结果
+    // 极值推导方法
     public static String getCompareResult() {
-        if (lastComparisonResult == null) {
-            return "No comparison has been performed yet.";
+        java.util.Map<String, Integer> defeatedCount = new java.util.HashMap<>();
+        for (String id : clientIdSet) {
+            defeatedCount.put(id, 0);
         }
-        return String.format(
-                "Decrypted Value (De[En(r1*(m1-m2)+r2)]): %s\nComparison Result: %s",
-                lastComparisonResult.decryptedValue,
-                lastComparisonResult.outcomeMessage);
+        for (java.util.Map.Entry<String, String> entry : compareMap.entrySet()) {
+            String key = entry.getKey();
+            String cmp = entry.getValue();
+            String[] ids = key.split(",");
+            String id1 = ids[0], id2 = ids[1];
+            if ("gt".equals(cmp)) {
+                defeatedCount.put(id2, defeatedCount.get(id2) + 1);
+            } else if ("lt".equals(cmp)) {
+                defeatedCount.put(id1, defeatedCount.get(id1) + 1);
+            }
+        }
+        String maxId = null, minId = null;
+        int n = defeatedCount.size();
+        for (java.util.Map.Entry<String, Integer> entry : defeatedCount.entrySet()) {
+            if (entry.getValue() == 0)
+                maxId = entry.getKey();
+            if (entry.getValue() == n - 1)
+                minId = entry.getKey();
+        }
+        return String.format("最大值 clientId: %s, 最小值 clientId: %s", maxId, minId);
     }
 
     // 新增：获取ImprovePaillier密文并上传centerServer

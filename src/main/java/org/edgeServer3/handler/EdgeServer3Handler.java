@@ -65,6 +65,34 @@ public class EdgeServer3Handler implements HttpHandler {
                 sendResponse(exchange, 405, "Method not allowed");
                 return;
             }
+        } else if (path.equals("/post/triggerCompare")) {
+            if (exchange.getRequestMethod().equals("POST")) {
+                java.util.List<org.edgeServer1.ComparisonCipherTextBatchSender.ComparisonCipherText> cmpList = new java.util.ArrayList<>();
+                java.util.List<String> clientIds = org.edgeServer3.utils.EdgeServer3Manager.clientCipherTexts == null
+                        ? new java.util.ArrayList<>()
+                        : new java.util.ArrayList<>(
+                                org.edgeServer3.utils.EdgeServer3Manager.clientCipherTexts.keySet());
+                // 按 client-数字 升序排序，确保顺序一致
+                clientIds.sort(java.util.Comparator.comparingInt(id -> Integer.parseInt(id.replace("client-", ""))));
+                // 全排列两两比较
+                for (int i = 0; i < clientIds.size(); i++) {
+                    for (int j = i + 1; j < clientIds.size(); j++) {
+                        String c1 = clientIds.get(i);
+                        String c2 = clientIds.get(j);
+                        String cmpCipher = org.edgeServer3.utils.EdgeServer3Manager
+                                .generateAndSendComparisonCipherText(c1, c2);
+                        if (!cmpCipher.startsWith("Error:")) {
+                            cmpList.add(new org.edgeServer1.ComparisonCipherTextBatchSender.ComparisonCipherText(c1, c2,
+                                    cmpCipher));
+                        }
+                    }
+                }
+                org.edgeServer1.ComparisonCipherTextBatchSender.sendBatch(cmpList);
+                sendResponse(exchange, 200, "批量比较已触发");
+            } else {
+                sendResponse(exchange, 405, "Method not allowed");
+            }
+            return;
         } else {
             sendResponse(exchange, 404, "Path not found");
             return;

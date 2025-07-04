@@ -74,16 +74,18 @@ public class EdgeHandler implements HttpHandler {
             if (exchange.getRequestMethod().equals("POST")) {
                 java.util.List<org.edgeServer1.ComparisonCipherTextBatchSender.ComparisonCipherText> cmpList = new java.util.ArrayList<>();
                 java.util.List<String> clientIds = org.edgeServer1.utils.EdgeManager.getAllClientIds();
-                // 按 client-数字 升序排序，确保顺序一致
-                clientIds.sort(java.util.Comparator.comparingInt(id -> Integer.parseInt(id.replace("client-", ""))));
-                for (int i = 0; i < clientIds.size() - 1; i++) {
-                    String c1 = clientIds.get(i);
-                    String c2 = clientIds.get(i + 1);
-                    String cmpCipher = org.edgeServer1.utils.EdgeManager.generateAndSendComparisonCipherText(c1, c2);
 
-                    if (!cmpCipher.startsWith("Error:")) {
-                        cmpList.add(new org.edgeServer1.ComparisonCipherTextBatchSender.ComparisonCipherText(c1, c2,
-                                cmpCipher));
+                // 全排列，构建两两比较的密文。
+                for (int i = 0; i < clientIds.size(); i++) {
+                    for (int j = i + 1; j < clientIds.size(); j++) {
+                        String c1 = clientIds.get(i);
+                        String c2 = clientIds.get(j);
+                        String cmpCipher = org.edgeServer1.utils.EdgeManager.generateAndSendComparisonCipherText(c1,
+                                c2);
+                        if (!cmpCipher.startsWith("Error:")) {
+                            cmpList.add(new org.edgeServer1.ComparisonCipherTextBatchSender.ComparisonCipherText(c1, c2,
+                                    cmpCipher));
+                        }
                     }
                 }
                 org.edgeServer1.ComparisonCipherTextBatchSender.sendBatch(cmpList);

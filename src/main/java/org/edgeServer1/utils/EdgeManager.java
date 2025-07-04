@@ -22,8 +22,7 @@ public class EdgeManager {
     public static void registerClient(String clientId, String cipherText, String squareCipherText) {
         clientCipherTexts.put(clientId, cipherText);
         clientSquareCipherTexts.put(clientId, squareCipherText);
-        updateAggregatedCipherText();
-        updateAggregatedSquareCipherText();
+
     }
 
     private static void updateAggregatedCipherText() {
@@ -153,11 +152,13 @@ public class EdgeManager {
     }
 
     public static String getAggregatedCipherText() {
+        updateAggregatedCipherText();
         sendAggregatedCipherTextToEdgeServer2(aggregatedCipherText);
         return aggregatedCipherText;
     }
 
     public static String getAggregatedSquareCipherText() {
+        updateAggregatedSquareCipherText();
         return aggregatedSquareCipherText;
     }
 

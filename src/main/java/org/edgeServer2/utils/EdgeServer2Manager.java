@@ -133,25 +133,33 @@ public class EdgeServer2Manager {
     }
 
     public static String getCompareResult() {
-        // 1. 提取所有client编号并排序
-        List<Integer> clientNums = new ArrayList<>();
+        // 统计每个client被击败的次数
+        java.util.Map<String, Integer> defeatedCount = new java.util.HashMap<>();
         for (String id : clientIdSet) {
-            clientNums.add(Integer.parseInt(id.replace("client-", "")));
+            defeatedCount.put(id, 0);
         }
-        Collections.sort(clientNums);
-
-        // 2. 顺序遍历，推导极值
-        String minId = "client-" + clientNums.get(0);
-        String maxId = "client-" + clientNums.get(clientNums.size() - 1);
-
-        // 3. （可选）顺序输出所有比较结果
-        for (int i = 0; i < clientNums.size() - 1; i++) {
-            String key = "client-" + clientNums.get(i) + ",client-" + clientNums.get(i + 1);
-            String cmp = compareMap.get(key);
-            System.out.println(key + "=" + cmp);
+        for (java.util.Map.Entry<String, String> entry : compareMap.entrySet()) {
+            String key = entry.getKey();
+            String cmp = entry.getValue();
+            String[] ids = key.split(",");
+            String id1 = ids[0], id2 = ids[1];
+            if ("gt".equals(cmp)) {
+                // id1 > id2，id2被击败
+                defeatedCount.put(id2, defeatedCount.get(id2) + 1);
+            } else if ("lt".equals(cmp)) {
+                // id1 < id2，id1被击败
+                defeatedCount.put(id1, defeatedCount.get(id1) + 1);
+            }
+        }
+        String maxId = null, minId = null;
+        int n = defeatedCount.size();
+        for (java.util.Map.Entry<String, Integer> entry : defeatedCount.entrySet()) {
+            if (entry.getValue() == 0)
+                maxId = entry.getKey();
+            if (entry.getValue() == n - 1)
+                minId = entry.getKey();
         }
 
-        // 4. 返回极值
         return String.format("最大值 clientId: %s, 最小值 clientId: %s", maxId, minId);
     }
 

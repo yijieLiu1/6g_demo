@@ -1,4 +1,4 @@
-package org.edgeServer1;
+package org.edgeServer3;
 
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -12,9 +12,7 @@ import java.util.ArrayList;
 import java.time.Duration;
 
 public class ComparisonCipherTextBatchSender {
-    private static final int BATCH_SIZE = 1; // 可调
-    private static final int SLEEP_MS = 500; // 可调
-    private static final String TARGET_URL = "http://localhost:33456/post/comparisonData"; // edgeServer2
+    private static final String TARGET_URL = "http://localhost:34567/post/comparisonData"; // edgeServer2
 
     public static void sendBatch(List<ComparisonCipherText> comparisonList) {
         int THREADS = 16; // 可根据CPU核数调整

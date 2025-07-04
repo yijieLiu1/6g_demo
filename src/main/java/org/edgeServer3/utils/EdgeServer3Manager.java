@@ -8,15 +8,20 @@ import java.net.http.HttpResponse;
 import java.net.URI;
 import org.edgeServer4.utils.Paillier;
 import org.json.JSONObject;
+import java.math.BigDecimal;
 
 public class EdgeServer3Manager {
-    private static final ConcurrentHashMap<String, String> clientCipherTexts = new ConcurrentHashMap<>();
+    public static final ConcurrentHashMap<String, String> clientCipherTexts = new ConcurrentHashMap<>();
     private static String aggregatedCipherText = "";
     private static final ConcurrentHashMap<String, String> clientSquareCipherTexts = new ConcurrentHashMap<>();
     private static String aggregatedSquareCipherText = "";
 
     private static final HttpClient httpClient = HttpClient.newHttpClient();
     private static final String EDGE_SERVER4_URL = "http://localhost:34567";
+
+    // 比较结果统计结构
+    private static final java.util.Map<String, String> compareMap = new java.util.LinkedHashMap<>();
+    private static final java.util.Set<String> clientIdSet = new java.util.HashSet<>();
 
     public static void registerClient(String clientId, String cipherText, String squareCipherText) {
         clientCipherTexts.put(clientId, cipherText);
@@ -163,5 +168,55 @@ public class EdgeServer3Manager {
                 .runAsync(() -> sendComparisonDataToEdgeServer4(comparisonCipherText, clientId1, clientId2));
 
         return comparisonCipherText;
+    }
+
+    // 处理比较密文，记录比较结果
+    public static void processComparisonData(String cipherText, String clientId1, String clientId2) {
+        try {
+            String key = clientId1 + "," + clientId2;
+            if (compareMap.containsKey(key)) {
+                return;
+            }
+            BigInteger c = new BigInteger(cipherText);
+            BigDecimal m_blinded = org.edgeServer4.utils.Paillier.decrypt(c);
+            BigInteger M = m_blinded.toBigInteger();
+            clientIdSet.add(clientId1);
+            clientIdSet.add(clientId2);
+            if (M.compareTo(BigInteger.ZERO) < 0) {
+                compareMap.put(key, "lt");
+            } else {
+                compareMap.put(key, "gt");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    // 极值推导方法
+    public static String getCompareResult() {
+        java.util.Map<String, Integer> defeatedCount = new java.util.HashMap<>();
+        for (String id : clientIdSet) {
+            defeatedCount.put(id, 0);
+        }
+        for (java.util.Map.Entry<String, String> entry : compareMap.entrySet()) {
+            String key = entry.getKey();
+            String cmp = entry.getValue();
+            String[] ids = key.split(",");
+            String id1 = ids[0], id2 = ids[1];
+            if ("gt".equals(cmp)) {
+                defeatedCount.put(id2, defeatedCount.get(id2) + 1);
+            } else if ("lt".equals(cmp)) {
+                defeatedCount.put(id1, defeatedCount.get(id1) + 1);
+            }
+        }
+        String maxId = null, minId = null;
+        int n = defeatedCount.size();
+        for (java.util.Map.Entry<String, Integer> entry : defeatedCount.entrySet()) {
+            if (entry.getValue() == 0)
+                maxId = entry.getKey();
+            if (entry.getValue() == n - 1)
+                minId = entry.getKey();
+        }
+        return String.format("最大值 clientId: %s, 最小值 clientId: %s", maxId, minId);
     }
 }
