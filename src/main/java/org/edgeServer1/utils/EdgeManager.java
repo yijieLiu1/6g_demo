@@ -66,11 +66,11 @@ public class EdgeManager {
     }
 
     // 发送聚合后的密文到edgeServer2
-    private static void sendAggregatedCipherTextToEdgeServer2(String cipherText) {
+    private static void sendAggregatedCipherTextToEdgeServer2(String cipherText, String squareCipherText) {
         try {
             JSONObject json = new JSONObject();
             json.put("cipherText", cipherText);
-            json.put("squareCipherText", getAggregatedSquareCipherText());
+            json.put("squareCipherText", squareCipherText);
             json.put("clientCount", getClientCount());
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(EDGE_SERVER2_URL + "/post/aggregatedCipherText"))
@@ -153,7 +153,7 @@ public class EdgeManager {
 
     public static String getAggregatedCipherText() {
         updateAggregatedCipherText();
-        sendAggregatedCipherTextToEdgeServer2(aggregatedCipherText);
+        sendAggregatedCipherTextToEdgeServer2(aggregatedCipherText, aggregatedSquareCipherText);
         return aggregatedCipherText;
     }
 

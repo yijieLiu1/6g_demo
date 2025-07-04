@@ -41,6 +41,7 @@ public class EdgeHandler implements HttpHandler {
         } else if (path.equals("/get/sumcipherText")) {
             // 输出两个聚合密文
             String cipherText = EdgeManager.getAggregatedCipherText();
+            // 当执行getAggregatedCipherText时，会发送聚合后的密文到edgeServer2
             String squareCipherText = EdgeManager.getAggregatedSquareCipherText();
             response = "sumcipherText:{\"cipherText\":\"" + cipherText + "\",\"squareCipherText\":\"" + squareCipherText
                     + "\"}";
