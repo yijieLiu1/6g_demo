@@ -10,17 +10,15 @@ public class ComparePairClient {
     private static final String EDGE_SERVER2_URL = "http://localhost:33456";
     private static final HttpClient httpClient = HttpClient.newHttpClient();
 
-    // 发送一对比较密文到edgeServer2，返回比较结果json字符串
-    public static String sendComparePairToEdgeServer2(String clientId1, String clientId2, String cmpCipher) {
+    // 发送比较密文到edgeServer2，返回比较结果json字符串
+    public static String sendComparisonDataToEdgeServer2(String clientId1, String clientId2, String cmpCipher) {
         try {
-            JSONObject json = new JSONObject();
-            json.put("clientId1", clientId1);
-            json.put("clientId2", clientId2);
-            json.put("cmpCipher", cmpCipher);
             HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(EDGE_SERVER2_URL + "/post/twoClientCompareResult"))
-                    .header("Content-Type", "application/json")
-                    .POST(HttpRequest.BodyPublishers.ofString(json.toString()))
+                    .uri(URI.create(EDGE_SERVER2_URL + "/post/comparisonData"))
+                    .header("Content-Type", "text/plain")
+                    .header("Client-ID1", clientId1)
+                    .header("Client-ID2", clientId2)
+                    .POST(HttpRequest.BodyPublishers.ofString(cmpCipher))
                     .build();
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() == 200) {

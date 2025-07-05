@@ -24,30 +24,9 @@ import org.json.JSONObject;
 import java.math.BigInteger;
 
 public class Main {
-    // private static final int PORT = 13456;
-
     public static void main(String[] args) {
         try {
             long starttime = System.currentTimeMillis();
-            // HttpServer server = HttpServer.create(new InetSocketAddress(PORT), 0);
-            // DataHandler dataHandler = new DataHandler();
-
-            // // 注册路由
-            // server.createContext("/get/plainText", dataHandler);
-            // server.createContext("/get/cipherText", dataHandler);
-
-            // // 设置线程池
-            // server.setExecutor(null);
-
-            // // 启动服务器
-            // server.start();
-            // System.out.println("Server started on port " + PORT);
-            // try {
-            // Thread.sleep(2000);
-            // } catch (InterruptedException e) {
-            // }
-
-            // 从文件加载、加密并发送客户端数据
             encryptAndSendToEdgeServers("data.csv");
             long endtime = System.currentTimeMillis();
             System.out.println("所有客户端注册和请求发送完成，耗时: " + (endtime - starttime) + " 毫秒");
@@ -95,6 +74,7 @@ public class Main {
             List<java.util.concurrent.CompletableFuture<Void>> batchFutures = new ArrayList<>();
             for (int i = batchStart; i < batchEnd; i++) {
                 final int idx = i;
+                // 使用CompletableFuture异步处理每个数据项
                 batchFutures.add(java.util.concurrent.CompletableFuture.runAsync(() -> {
                     try {
                         BigDecimal data = new BigDecimal(dataForThreads.get(idx));

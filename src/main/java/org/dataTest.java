@@ -44,12 +44,20 @@ public class dataTest {
         BigDecimal sum = BigDecimal.ZERO;
         BigDecimal min = list.get(0);
         BigDecimal max = list.get(0);
-        for (BigDecimal val : list) {
+        int maxIndex = 0; // 记录最大值的位置
+        int minIndex = 0; // 记录最小值的位置
+
+        for (int i = 0; i < list.size(); i++) {
+            BigDecimal val = list.get(i);
             sum = sum.add(val);
-            if (val.compareTo(min) < 0)
+            if (val.compareTo(min) < 0) {
                 min = val;
-            if (val.compareTo(max) > 0)
+                minIndex = i;
+            }
+            if (val.compareTo(max) > 0) {
                 max = val;
+                maxIndex = i;
+            }
         }
         BigDecimal avg = sum.divide(BigDecimal.valueOf(list.size()), 8, BigDecimal.ROUND_HALF_UP);
         // 方差
@@ -63,8 +71,8 @@ public class dataTest {
         System.out.println("和: " + sum);
         System.out.println("平均值: " + avg);
         System.out.println("方差: " + variance);
-        System.out.println("最大值: " + max);
-        System.out.println("最小值: " + min);
+        System.out.println("最大值: " + max + " (第" + (maxIndex + 1) + "行)");
+        System.out.println("最小值: " + min + " (第" + (minIndex + 1) + "行)");
         System.out.println();
     }
 }
