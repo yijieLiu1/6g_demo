@@ -1,19 +1,12 @@
 package org.dataClient;
 
-import com.sun.net.httpserver.HttpServer;
-
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
-import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-
-import org.dataClient.handler.DataHandler;
-
 import java.math.BigDecimal;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -51,8 +44,7 @@ public class Main {
         }
         int total = clientData.size();
         System.out.println("读取到 " + total + " 条客户端数据。开始加密并发送请求...");
-        int THREADS = 120;
-        ExecutorService pool = Executors.newFixedThreadPool(THREADS);
+
         final HttpClient httpClient = HttpClient.newHttpClient();
 
         // 新密钥参数（与DataHandler保持一致）
@@ -69,7 +61,8 @@ public class Main {
                 NEW_PAILLIER_SCALE);
 
         final List<String> dataForThreads = clientData;
-        int BATCH_SIZE = 300;
+        int BATCH_SIZE = 250;
+        ExecutorService threadPool = Executors.newFixedThreadPool(32); // 指定32线程
         for (int batchStart = 0; batchStart < dataForThreads.size(); batchStart += BATCH_SIZE) {
             int batchEnd = Math.min(batchStart + BATCH_SIZE, dataForThreads.size());
             List<java.util.concurrent.CompletableFuture<Void>> batchFutures = new ArrayList<>();
@@ -109,14 +102,14 @@ public class Main {
                     } catch (Exception e) {
                         System.err.println("Error for client " + (idx + 1) + ": " + e.getMessage());
                     }
-                }));
+                }, threadPool));
             }
             batchFutures.forEach(java.util.concurrent.CompletableFuture::join);
-            try {
-                Thread.sleep(200); // 给服务端缓冲
-            } catch (Exception e) {
-                System.out.println("线程休眠异常: " + e.getMessage());
-            }
+            // try {
+            // Thread.sleep(200); // 给服务端缓冲
+            // } catch (Exception e) {
+            // System.out.println("线程休眠异常: " + e.getMessage());
+            // }
         }
         clientData = null;
         System.gc();
