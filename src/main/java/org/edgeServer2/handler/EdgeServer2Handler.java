@@ -13,13 +13,12 @@ public class EdgeServer2Handler implements HttpHandler {
     public void handle(HttpExchange exchange) throws IOException {
         String path = exchange.getRequestURI().getPath();
         String response;
-
+        // 获取解密的聚合值。
         if (path.equals("/get/decryptedText")) {
             response = EdgeServer2Manager.getDecryptedText();
-        } else if (path.equals("/get/receivedCipherText")) {
-            response = EdgeServer2Manager.getReceivedCipherText();
         }
-
+        // edgeServer1-->get/sumcipherText时触发
+        // edgeServer2用于响应请求，并保存聚合密文和聚合的平分密文。
         else if (path.equals("/post/aggregatedCipherText")) {
             if (exchange.getRequestMethod().equals("POST")) {
                 BufferedReader reader = new BufferedReader(new InputStreamReader(exchange.getRequestBody(), "UTF-8"));
@@ -34,7 +33,11 @@ public class EdgeServer2Handler implements HttpHandler {
                     String aggregatedCipherText = json.getString("cipherText");
                     String squareCipherText = json.getString("squareCipherText");
                     int clientCount = json.getInt("clientCount");
+                    // 解密聚合值，也构建好了ImprovePaillier的密文
                     EdgeServer2Manager.processAggregatedCipherText(aggregatedCipherText, clientCount);
+                    // !！均值计算在processAggregatedCipherText之后，解密后才能求均值。E(x)
+                    EdgeServer2Manager.processMeanData(clientCount);
+                    // !!方差计算在均值之后，E(X^2)-E(x)^2
                     EdgeServer2Manager.processVarianceData(squareCipherText, clientCount);
                     response = "Success";
                 } catch (Exception e) {
@@ -46,11 +49,11 @@ public class EdgeServer2Handler implements HttpHandler {
                 return;
             }
         }
-
+        // 获取极值。
         else if (path.equals("/get/compareResult")) {
             response = EdgeServer2Manager.getCompareResult();
         }
-
+        // 响应edgeServer1的密文请求，并处理。
         else if (path.equals("/post/comparisonData")) {
             if (exchange.getRequestMethod().equalsIgnoreCase("POST")) {
                 String clientId1 = exchange.getRequestHeaders().getFirst("Client-ID1");
@@ -77,19 +80,19 @@ public class EdgeServer2Handler implements HttpHandler {
                 return;
             }
         }
-
+        // 获取Impaillier加密的密文，并把这个密文发送给centerServer.
         else if (path.equals("/get/impaillierCipherText")) {
             response = EdgeServer2Manager.getImpaillierCipherText();
         }
-
+        // 获取平均值
         else if (path.equals("/get/meanResult")) {
             response = EdgeServer2Manager.getMeanResult();
         }
-
+        // 获取方差结果
         else if (path.equals("/get/varianceResult")) {
             response = EdgeServer2Manager.getVarianceResult();
         }
-
+        // 接收来自edgeServer1的最终极值保存请求,只接收最后一轮的比较结果。
         else if (path.equals("/post/finalCompareResult")) {
             System.out.println("[finalCompareResult] 收到最终极值保存请求");
             if (exchange.getRequestMethod().equalsIgnoreCase("POST")) {

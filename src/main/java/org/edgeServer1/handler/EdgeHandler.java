@@ -6,14 +6,9 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import org.edgeServer1.utils.EdgeManager;
 
 public class EdgeHandler implements HttpHandler {
-    private static volatile boolean alreadyTriggered = false;
-    private static final ConcurrentHashMap<String, EdgeManager> clients = new ConcurrentHashMap<>();
 
     @Override
     public void handle(HttpExchange exchange) throws IOException {
@@ -21,18 +16,23 @@ public class EdgeHandler implements HttpHandler {
         String clientId = exchange.getRequestHeaders().getFirst("Client-ID");
 
         String response;
+
         if (path.equals("/get/totalclientNum")) {
             response = "totalclientNum:" + String.valueOf(EdgeManager.getClientCount());
-        } else if (path.equals("/get/sumcipherText")) {
+        }
+        // 执行密文连乘，输出密文，并把聚合后的密文发送给edgeServer2
+        else if (path.equals("/get/sumcipherText")) {
             // 输出两个聚合密文
             String cipherText = EdgeManager.getAggregatedCipherText();
             String squareCipherText = EdgeManager.getAggregatedSquareCipherText();
             EdgeManager.sendAggregatedCipherTextToEdgeServer2(cipherText, squareCipherText);
             response = "sumcipherText:{\"cipherText\":\"" + cipherText + "\",\"squareCipherText\":\"" + squareCipherText
                     + "\"}";
-        } else if (path.equals("/post/cipherText")) {
+        }
+        // 接收来自dataClient发送的密文,并注册client
+        // cipherText密文，squareCipherText平方密文，interval区间
+        else if (path.equals("/post/cipherText")) {
             if (exchange.getRequestMethod().equals("POST")) {
-                // 读取请求体中的密文
                 BufferedReader reader = new BufferedReader(new InputStreamReader(exchange.getRequestBody(), "UTF-8"));
                 StringBuilder sb = new StringBuilder();
                 String line;
@@ -44,8 +44,8 @@ public class EdgeHandler implements HttpHandler {
                     org.json.JSONObject json = new org.json.JSONObject(body);
                     String cipherText = json.getString("cipherText");
                     String squareCipherText = json.getString("squareCipherText");
-                    EdgeManager.registerClient(clientId, cipherText, squareCipherText);
-
+                    String interval = json.optString("interval", "");
+                    EdgeManager.registerClient(clientId, cipherText, squareCipherText, interval);
                     response = "Success";
                 } catch (Exception e) {
                     sendResponse(exchange, 400, "Invalid JSON or missing fields");
@@ -56,46 +56,14 @@ public class EdgeHandler implements HttpHandler {
                 return;
             }
         }
-
-        // else if (path.equals("/post/triggerCompare")) {
-        // System.out.println("开始执行/post/triggerCompare.....");
-        // if (exchange.getRequestMethod().equals("POST")) {
-        // try {
-        // java.util.List<org.edgeServer1.ComparisonCipherTextBatchSender.ComparisonCipherText>
-        // cmpList = new java.util.ArrayList<>();
-        // java.util.List<String> clientIds =
-        // org.edgeServer1.utils.EdgeManager.getAllClientIds();
-        // for (int i = 0; i < clientIds.size(); i++) {
-        // for (int j = i + 1; j < clientIds.size(); j++) {
-        // String c1 = clientIds.get(i);
-        // String c2 = clientIds.get(j);
-        // String cmpCipher =
-        // org.edgeServer1.utils.EdgeManager.generateComparisonCipherText(c1,
-        // c2);
-        // if (!cmpCipher.startsWith("Error:")) {
-        // cmpList.add(new
-        // org.edgeServer1.ComparisonCipherTextBatchSender.ComparisonCipherText(c1,
-        // c2, cmpCipher));
-        // }
-        // }
-        // }
-        // org.edgeServer1.ComparisonCipherTextBatchSender.sendBatch(cmpList);
-        // sendResponse(exchange, 200, "批量比较已触发");
-        // } catch (Exception e) {
-        // sendResponse(exchange, 500, "服务端异常: " + e.getMessage());
-        // }
-        // } else {
-        // sendResponse(exchange, 405, "Method not allowed");
-        // }
-        // return;
-        // }
-
+        // 执行极值比较，需手动触发
         else if (path.equals("/post/comparePair")) {
             System.out.println("开始执行/post/comparePair.....");
             if (exchange.getRequestMethod().equals("POST")) {
                 try {
-                    // 执行最大最小值比较。
-                    String result = org.edgeServer1.utils.EdgeManager.findExtremes();
+                    // String result =org.edgeServer1.utils.EdgeManager.findExtremes();
+                    // 只在最大区间找最大值，最小区间找最小值
+                    String result = org.edgeServer1.utils.EdgeManager.findExtremesByInterval();
                     sendResponse(exchange, 200, result);
                 } catch (Exception e) {
                     sendResponse(exchange, 500, "服务端异常: " + e.getMessage());
@@ -112,6 +80,7 @@ public class EdgeHandler implements HttpHandler {
         sendResponse(exchange, 200, response);
     }
 
+    // 发送响应
     private void sendResponse(HttpExchange exchange, int statusCode, String response) throws IOException {
         exchange.sendResponseHeaders(statusCode, response.length());
         try (OutputStream os = exchange.getResponseBody()) {

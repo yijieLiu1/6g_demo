@@ -8,12 +8,6 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.net.URI;
 import org.json.JSONObject;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.List;
-import java.util.Collections;
-import java.util.ArrayList;
 
 public class EdgeServer2Manager {
     private static String receivedCipherText = "";
@@ -21,23 +15,21 @@ public class EdgeServer2Manager {
     private static final String CENTER_SERVER_URL = "http://localhost:33333";
     private static final HttpClient httpClient = HttpClient.newHttpClient();
     private static final int SCALE = 8; // 保留8位小数
-
-    private static class ComparisonResult {
-        String decryptedValue;
-        String outcomeMessage;
-    }
-
-    private static ComparisonResult lastComparisonResult = null;
+    // 新增：保存最大最小id
+    private static String maxId = null;
+    private static String minId = null;
     private static String lastImpaillierCipherText = "";
     private static BigDecimal meanValue = null;
     private static BigDecimal ex2Value = null;
     private static BigDecimal varianceValue = null;
     private static int lastClientCount = 0;
-    private static final java.util.Map<String, BigDecimal> clientValueMap = new java.util.HashMap<>();
 
-    // === 冒泡极值推导结构 ===
     private static final java.util.Map<String, String> compareMap = new java.util.LinkedHashMap<>();
     private static final java.util.Set<String> clientIdSet = new java.util.HashSet<>();
+
+    // 在求极值时的调试信息（可选）
+    private static int compareCount = 0;
+    private static long compareStartTime = 0;
 
     public static void processAggregatedCipherText(String cipherText, int clientCount) {
         lastClientCount = clientCount;
@@ -49,8 +41,7 @@ public class EdgeServer2Manager {
                 BigDecimal m = Paillier.decrypt(c);
                 // 保留2位小数，确保正确显示负数
                 decryptedText = m.setScale(2, RoundingMode.HALF_UP).toPlainString();
-                // 计算均值
-                processMeanData(m, clientCount);
+
                 // 使用ImprovePaillier的SK_DO密钥对解密结果进行加密
                 BigDecimal scaled = new BigDecimal(decryptedText).setScale(SCALE, RoundingMode.HALF_UP);
                 BigInteger valueToEncrypt = scaled.multiply(BigDecimal.TEN.pow(SCALE)).toBigInteger();
@@ -132,36 +123,16 @@ public class EdgeServer2Manager {
         }
     }
 
-    // public static String getCompareResult() {
-    // // 统计每个client被击败的次数
-    // java.util.Map<String, Integer> defeatedCount = new java.util.HashMap<>();
-    // for (String id : clientIdSet) {
-    // defeatedCount.put(id, 0);
-    // }
-    // for (java.util.Map.Entry<String, String> entry : compareMap.entrySet()) {
-    // String key = entry.getKey();
-    // String cmp = entry.getValue();
-    // String[] ids = key.split(",");
-    // String id1 = ids[0], id2 = ids[1];
-    // if ("gt".equals(cmp)) {
-    // // id1 > id2，id2被击败
-    // defeatedCount.put(id2, defeatedCount.get(id2) + 1);
-    // } else if ("lt".equals(cmp)) {
-    // // id1 < id2，id1被击败
-    // defeatedCount.put(id1, defeatedCount.get(id1) + 1);
-    // }
-    // }
-    // String maxId = null, minId = null;
-    // int n = defeatedCount.size();
-    // for (java.util.Map.Entry<String, Integer> entry : defeatedCount.entrySet()) {
-    // if (entry.getValue() == 0)
-    // maxId = entry.getKey();
-    // if (entry.getValue() == n - 1)
-    // minId = entry.getKey();
-    // }
-
-    // return String.format("最大值 clientId: %s, 最小值 clientId: %s", maxId, minId);
-    // }
+    // 解密聚合值在processAggregatedCipherText中已经实现。所以直接使用decryptedText即可。
+    public static void processMeanData(int clientCount) {
+        if (clientCount > 0) {
+            BigDecimal m = new BigDecimal(decryptedText);
+            meanValue = m.divide(new BigDecimal(clientCount), 8,
+                    RoundingMode.HALF_UP);
+        } else {
+            meanValue = null;
+        }
+    }
 
     private static void sendEncryptedValueToCenterServer(String encryptedValue, int clientCount) {
         try {
@@ -228,10 +199,6 @@ public class EdgeServer2Manager {
         return debugInfo;
     }
 
-    public static String getReceivedCipherText() {
-        return receivedCipherText.isEmpty() ? "No cipher text received" : receivedCipherText;
-    }
-
     // 新增：获取ImprovePaillier密文并上传centerServer
     public static String getImpaillierCipherText() {
         if (lastImpaillierCipherText == null || lastImpaillierCipherText.isEmpty()) {
@@ -284,14 +251,6 @@ public class EdgeServer2Manager {
         return "Mean Result: " + meanValue.setScale(8, RoundingMode.HALF_UP).toPlainString() + "\n";
     }
 
-    public static void processMeanData(BigDecimal decryptedValue, int clientCount) {
-        if (clientCount > 0) {
-            meanValue = decryptedValue.divide(new BigDecimal(clientCount), 8, RoundingMode.HALF_UP);
-        } else {
-            meanValue = null;
-        }
-    }
-
     // 获取当前所有client值的方差
     public static String getVarianceResult() {
         if (varianceValue == null) {
@@ -299,10 +258,6 @@ public class EdgeServer2Manager {
         }
         return "方差结果: " + varianceValue.setScale(8, RoundingMode.HALF_UP).toPlainString() + "\n";
     }
-
-    // 新增：解密比较密文，返回较大clientId
-    private static int compareCount = 0;
-    private static long compareStartTime = 0;
 
     public static String compareAndGetBigger(String clientId1, String clientId2, String cmpCipher) {
         try {
@@ -323,10 +278,6 @@ public class EdgeServer2Manager {
             return null;
         }
     }
-
-    // 新增：保存最大最小id
-    private static String maxId = null;
-    private static String minId = null;
 
     public static void saveCompareResult(String max, String min) {
         maxId = max;

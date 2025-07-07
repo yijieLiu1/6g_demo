@@ -50,6 +50,7 @@ public class Main {
             return;
         }
         int total = clientData.size();
+        System.out.println("读取到 " + total + " 条客户端数据。开始加密并发送请求...");
         int THREADS = 120;
         ExecutorService pool = Executors.newFixedThreadPool(THREADS);
         final HttpClient httpClient = HttpClient.newHttpClient();
@@ -74,20 +75,19 @@ public class Main {
             List<java.util.concurrent.CompletableFuture<Void>> batchFutures = new ArrayList<>();
             for (int i = batchStart; i < batchEnd; i++) {
                 final int idx = i;
-                // 使用CompletableFuture异步处理每个数据项
                 batchFutures.add(java.util.concurrent.CompletableFuture.runAsync(() -> {
                     try {
-                        BigDecimal data = new BigDecimal(dataForThreads.get(idx));
-                        String clientId = "client-" + (idx + 1);
+                        String[] parts = dataForThreads.get(idx).split(",");
+                        String clientId = parts[0];
+                        String interval = parts[1];
+                        BigDecimal data = new BigDecimal(parts[2]);
                         BigInteger cipherText, squareCipherText;
                         String url;
                         if (idx < total / 2) {
-                            // 老密钥静态加密
                             cipherText = Paillier.encrypt(data);
                             squareCipherText = Paillier.encrypt(data.multiply(data));
                             url = "http://localhost:23456/post/cipherText";
                         } else {
-                            // 新密钥实例加密
                             cipherText = newPaillier.encryptInst(data);
                             squareCipherText = newPaillier.encryptInst(data.multiply(data));
                             url = "http://localhost:24567/post/cipherText";
@@ -95,6 +95,7 @@ public class Main {
                         JSONObject json = new JSONObject();
                         json.put("cipherText", cipherText.toString());
                         json.put("squareCipherText", squareCipherText.toString());
+                        json.put("interval", interval);
                         HttpRequest request = HttpRequest.newBuilder()
                                 .uri(URI.create(url))
                                 .header("Client-ID", clientId)
