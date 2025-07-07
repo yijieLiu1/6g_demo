@@ -61,6 +61,7 @@ public class Main {
                 NEW_PAILLIER_SCALE);
 
         final List<String> dataForThreads = clientData;
+        // 批处理更加稳定
         int BATCH_SIZE = 250;
         ExecutorService threadPool = Executors.newFixedThreadPool(32); // 指定32线程
         for (int batchStart = 0; batchStart < dataForThreads.size(); batchStart += BATCH_SIZE) {
