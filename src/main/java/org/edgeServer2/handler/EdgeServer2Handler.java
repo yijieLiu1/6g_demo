@@ -85,6 +85,10 @@ public class EdgeServer2Handler implements HttpHandler {
         else if (path.equals("/get/impaillierCipherText")) {
             response = EdgeServer2Manager.getImpaillierCipherText();
         }
+        // 获取sumX2的Impaillier密文，并发送给centerServer
+        else if (path.equals("/get/impaillierVarianceCipherText")) {
+            response = EdgeServer2Manager.getAndsendImpaillierVarianceCipherText();
+        }
         // 获取平均值
         else if (path.equals("/get/meanResult")) {
             response = EdgeServer2Manager.getMeanResult();

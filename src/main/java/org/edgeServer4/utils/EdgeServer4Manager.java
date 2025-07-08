@@ -23,6 +23,8 @@ public class EdgeServer4Manager {
     private static BigDecimal ex2Value = null;
     private static BigDecimal varianceValue = null;
     private static int lastClientCount = 0;
+    // 新增：保存sumX2
+    private static BigDecimal sumX2 = null;
 
     private static final java.util.Map<String, String> compareMap = new java.util.LinkedHashMap<>();
     private static final java.util.Set<String> clientIdSet = new java.util.HashSet<>();
@@ -64,11 +66,12 @@ public class EdgeServer4Manager {
         if (squareCipherText == null || squareCipherText.isEmpty() || clientCount == 0) {
             ex2Value = null;
             varianceValue = null;
+            sumX2 = null;
             return;
         }
         try {
             BigInteger c = new BigInteger(squareCipherText);
-            BigDecimal sumX2 = Paillier.decrypt(c);
+            sumX2 = Paillier.decrypt(c);
             System.out.println("Sum of squares decrypted: " + sumX2);
             ex2Value = sumX2.divide(new BigDecimal(clientCount), 8, RoundingMode.HALF_UP);
             System.out.println("Ex2 Value: " + ex2Value);
@@ -294,5 +297,38 @@ public class EdgeServer4Manager {
     // getCompareResult返回最大最小id
     public static String getCompareResult() {
         return String.format("最大值 clientId: %s, 最小值 clientId: %s", maxId, minId);
+    }
+
+    // 新增：获取sumX2的ImprovePaillier密文并上传centerServer
+    public static String getAndsendImpaillierVarianceCipherText() {
+        if (sumX2 == null) {
+            return "No sumX2 value available.";
+        }
+        BigDecimal scaled = sumX2.setScale(SCALE, RoundingMode.HALF_UP);
+        System.out.println("sumx2" + scaled);
+        BigInteger valueToEncrypt = ImprovePaillier.encrypt(scaled.multiply(BigDecimal.TEN.pow(SCALE)).toBigInteger(),
+                1);
+        // 发送到centerServer
+        try {
+            JSONObject json = new JSONObject();
+            json.put("encryptedValue", valueToEncrypt.toString());
+            json.put("clientCount", lastClientCount);
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(CENTER_SERVER_URL + "/post/varianceCipherText"))
+                    .header("Content-Type", "application/json")
+                    .header("Server-Type", "server4")
+                    .POST(HttpRequest.BodyPublishers.ofString(json.toString()))
+                    .build();
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            System.out.println("Center Server响应状态码: " + response.statusCode());
+            System.out.println("Center Server响应内容: " + response.body());
+            if (response.statusCode() != 200) {
+                System.err.println("Failed to send variance cipher text to center server: " + response.body());
+            }
+        } catch (Exception e) {
+            System.err.println("Error sending variance cipher text to center server: " + e.getMessage());
+            e.printStackTrace();
+        }
+        return valueToEncrypt.toString();
     }
 }

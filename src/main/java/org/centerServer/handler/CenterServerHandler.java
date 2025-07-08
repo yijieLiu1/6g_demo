@@ -76,6 +76,33 @@ public class CenterServerHandler implements HttpHandler {
                 sendResponse(exchange, 405, "Method not allowed");
                 return;
             }
+        } else if (path.equals("/post/varianceCipherText")) {
+            if (exchange.getRequestMethod().equals("POST")) {
+                BufferedReader reader = new BufferedReader(new InputStreamReader(exchange.getRequestBody(), "UTF-8"));
+                StringBuilder sb = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    sb.append(line);
+                }
+                String body = sb.toString();
+                try {
+                    org.json.JSONObject json = new org.json.JSONObject(body);
+                    String encryptedValue = json.getString("encryptedValue");
+                    int clientCount = json.getInt("clientCount");
+                    String serverType = exchange.getRequestHeaders().getFirst("Server-Type");
+                    org.centerServer.utils.CenterServerManager.processVarianceCipherText(serverType, encryptedValue,
+                            clientCount);
+                    response = "Success";
+                } catch (Exception e) {
+                    sendResponse(exchange, 400, "Invalid JSON or missing fields");
+                    return;
+                }
+            } else {
+                sendResponse(exchange, 405, "Method not allowed");
+                return;
+            }
+        } else if (path.equals("/get/varianceResult")) {
+            response = org.centerServer.utils.CenterServerManager.getVarianceResult();
         } else {
             System.out.println("未找到路径: " + path);
             sendResponse(exchange, 404, "Path not found");

@@ -14,12 +14,15 @@ public class Main {
             EdgeServer2Handler edgeServer2Handler = new EdgeServer2Handler();
 
             // 注册路由
+            // 第一层，dataClient-->edgeServer，获取聚合值，极值，均值，方差
             server.createContext("/get/decryptedText", edgeServer2Handler);
-            server.createContext("/get/receivedCipherText", edgeServer2Handler);
-            server.createContext("/get/impaillierCipherText", edgeServer2Handler);
             server.createContext("/get/compareResult", edgeServer2Handler);
             server.createContext("/get/meanResult", edgeServer2Handler);
             server.createContext("/get/varianceResult", edgeServer2Handler);
+            // 第二层edgeServer2-->centerServer,获取并发送Impaillier密文。执行后，centerServer可以求聚合值，均值。
+            server.createContext("/get/impaillierCipherText", edgeServer2Handler);
+            // 获取并发送。edgeServer2解密得到了client的x^2的聚合值。然后再使用Impaillier加密，发送给centerServer。
+            server.createContext("/get/impaillierVarianceCipherText", edgeServer2Handler);
 
             server.createContext("/post/twoClientCompareResult", edgeServer2Handler);
             server.createContext("/post/aggregatedCipherText", edgeServer2Handler);

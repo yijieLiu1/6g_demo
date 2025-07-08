@@ -22,8 +22,10 @@ public class Main {
             server.createContext("/get/decryptedText", centerServerHandler);
             server.createContext("/get/compareResult", centerServerHandler);
             server.createContext("/get/meanResult", centerServerHandler);
+            server.createContext("/get/varianceResult", centerServerHandler);
             server.createContext("/post/compareCipherText", centerServerHandler);
             server.createContext("/post/aggregatedCipherText", centerServerHandler);
+            server.createContext("/post/varianceCipherText", centerServerHandler);
             System.out.println("路由注册完成");
 
             // 设置线程池

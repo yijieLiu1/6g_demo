@@ -20,6 +20,7 @@ public class Main {
             server.createContext("/get/compareCipherText", edgeServer4Handler);
             server.createContext("/get/meanResult", edgeServer4Handler);
             server.createContext("/get/varianceResult", edgeServer4Handler);
+            server.createContext("/get/impaillierVarianceCipherText", edgeServer4Handler);
 
             server.createContext("/post/aggregatedCipherText", edgeServer4Handler);
             server.createContext("/get/compareResult", edgeServer4Handler);

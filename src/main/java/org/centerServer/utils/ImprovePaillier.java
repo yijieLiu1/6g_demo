@@ -51,6 +51,7 @@ public class ImprovePaillier {
         BigInteger N2 = N.multiply(N);
         BigInteger L = aggregatedData.modPow(lambda, N2).subtract(BigInteger.ONE).divide(N);
         BigInteger De = L.multiply(u).mod(N).mod(y);
+
         // 若De > y/2，返回y-De，否则返回De本身
         if (De.compareTo(y.divide(BigInteger.TWO)) > 0) {
             return De.subtract(y);
@@ -91,8 +92,8 @@ public class ImprovePaillier {
     public static void main(String[] args) {
         // 测试加密和解密
         // 加密
-        BigInteger c1 = ImprovePaillier.encrypt(BigInteger.valueOf(-51), 0); // DO1
-        BigInteger c2 = ImprovePaillier.encrypt(BigInteger.valueOf(-41), 1); // DO2
+        BigInteger c1 = ImprovePaillier.encrypt(BigInteger.valueOf(2724346), 0); // DO1
+        BigInteger c2 = ImprovePaillier.encrypt(BigInteger.valueOf(2724346), 1); // DO2
 
         // 聚合
         BigInteger agg = ImprovePaillier.aggregate(new BigInteger[] { c1, c2 });
