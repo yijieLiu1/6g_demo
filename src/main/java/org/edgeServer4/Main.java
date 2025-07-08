@@ -24,6 +24,8 @@ public class Main {
             server.createContext("/post/aggregatedCipherText", edgeServer4Handler);
             server.createContext("/get/compareResult", edgeServer4Handler);
             server.createContext("/post/comparisonData", edgeServer4Handler);
+            server.createContext("/post/finalCompareResult", edgeServer4Handler);
+            server.createContext("/post/twoClientCompareResult", edgeServer4Handler);
 
             // 设置线程池
             server.setExecutor(null);

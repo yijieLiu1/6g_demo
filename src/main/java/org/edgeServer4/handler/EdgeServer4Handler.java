@@ -17,9 +17,6 @@ public class EdgeServer4Handler implements HttpHandler {
         if (path.equals("/get/decryptedText")) {
             response = EdgeServer4Manager.getDecryptedText();
 
-        } else if (path.equals("/get/receivedCipherText")) {
-            response = EdgeServer4Manager.getReceivedCipherText();
-
         }
         // 获取到来自edgeServer3的密文，然后进行聚合。
         else if (path.equals("/post/aggregatedCipherText")) {
@@ -37,6 +34,7 @@ public class EdgeServer4Handler implements HttpHandler {
                     String squareCipherText = json.getString("squareCipherText");
                     int clientCount = json.getInt("clientCount");
                     EdgeServer4Manager.processAggregatedCipherText(aggregatedCipherText, clientCount);
+                    EdgeServer4Manager.processMeanData(clientCount);
                     EdgeServer4Manager.processVarianceData(squareCipherText, clientCount);
                     response = "Success";
                 } catch (Exception e) {
@@ -60,12 +58,45 @@ public class EdgeServer4Handler implements HttpHandler {
                 }
                 BufferedReader reader = new BufferedReader(new InputStreamReader(exchange.getRequestBody()));
                 String cipherText = reader.readLine();
-                EdgeServer4Manager.processComparisonData(cipherText, clientId1, clientId2);
-                response = "Comparison data received.";
+                System.out.println("[comparisonData] 收到比较请求: " + clientId1 + " vs " + clientId2);
+                String bigger = org.edgeServer4.utils.EdgeServer4Manager.compareAndGetBigger(clientId1, clientId2,
+                        cipherText);
+                String smaller = clientId1.equals(bigger) ? clientId2 : clientId1;
+                System.out.println("[comparisonData] 结果: bigger=" + bigger + ", smaller=" + smaller);
+                org.json.JSONObject result = new org.json.JSONObject();
+                result.put("bigger", bigger);
+                result.put("smaller", smaller);
+                sendResponse(exchange, 200, result.toString());
+                return;
             } else {
                 sendResponse(exchange, 405, "Method Not Allowed");
                 return;
             }
+        } // 接收来自edgeServer1的最终极值保存请求,只接收最后一轮的比较结果。
+        else if (path.equals("/post/finalCompareResult")) {
+            System.out.println("[finalCompareResult] 收到最终极值保存请求");
+            if (exchange.getRequestMethod().equalsIgnoreCase("POST")) {
+                BufferedReader reader = new BufferedReader(new InputStreamReader(exchange.getRequestBody(), "UTF-8"));
+                StringBuilder sb = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    sb.append(line);
+                }
+                String body = sb.toString();
+                try {
+                    org.json.JSONObject json = new org.json.JSONObject(body);
+                    String maxId = json.getString("maxId");
+                    String minId = json.getString("minId");
+                    System.out.println("[finalCompareResult] 保存极值: maxId=" + maxId + ", minId=" + minId);
+                    org.edgeServer4.utils.EdgeServer4Manager.saveCompareResult(maxId, minId);
+                    sendResponse(exchange, 200, "Final result saved");
+                } catch (Exception e) {
+                    sendResponse(exchange, 400, "Invalid JSON or missing fields");
+                }
+            } else {
+                sendResponse(exchange, 405, "Method not allowed");
+            }
+            return;
         } else if (path.equals("/get/impaillierCipherText")) {
             response = EdgeServer4Manager.getImpaillierCipherText();
         } else if (path.equals("/get/compareCipherText")) {

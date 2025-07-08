@@ -145,7 +145,7 @@ public class EdgeManager {
         return new java.util.ArrayList<>(clientCipherTexts.keySet());
     }
 
-    // 新增：最小最大对法查找极值
+    // 只是为了单纯测试比较的性能。
     public static String findExtremes() {
         java.util.List<String> clientIds = getAllClientIds();
         if (clientIds.size() < 2) {
@@ -153,87 +153,22 @@ public class EdgeManager {
         }
 
         int n = clientIds.size();
-        java.util.List<String> maxCandidates = new java.util.ArrayList<>();
-        java.util.List<String> minCandidates = new java.util.ArrayList<>();
-
-        // 1. 两两分组比较
-        for (int i = 0; i < n - 1; i += 2) {
+        int count = 0;
+        for (int i = 0; i < n - 1; i++) {
             String a = clientIds.get(i);
             String b = clientIds.get(i + 1);
             System.out.println("[EdgeManager] 分组: " + a + " vs " + b);
 
             String cmpCipher = generateComparisonCipherText(a, b);
-            String compareResult = org.edgeServer1.utils.ComparePairClient.sendComparisonDataToEdgeServer2(a, b,
-                    cmpCipher);
-            while (compareResult == null) {
-                System.out.println("[EdgeManager] 网络或服务端异常，重试: " + a + " vs " + b);
-                compareResult = org.edgeServer1.utils.ComparePairClient.sendComparisonDataToEdgeServer2(a, b,
-                        cmpCipher);
-            }
 
-            org.json.JSONObject resultJson = new org.json.JSONObject(compareResult);
-            String bigger = resultJson.getString("bigger");
-            String smaller = resultJson.getString("smaller");
-            System.out.println("[EdgeManager] 结果: bigger=" + bigger + ", smaller=" + smaller);
-            maxCandidates.add(bigger);
-            minCandidates.add(smaller);
+            org.edgeServer1.utils.ComparePairClient.sendComparisonDataToEdgeServer2(a, b, cmpCipher);
+            count++;
         }
-
-        if (n % 2 == 1) {
-            String last = clientIds.get(n - 1);
-            System.out.println("[EdgeManager] 奇数个，最后一个 " + last + " 进入两个候选区");
-            maxCandidates.add(last);
-            minCandidates.add(last);
-        }
-
-        // 2. 在maxCandidates中找最大
-        String maxId = maxCandidates.get(0);
-        for (int i = 1; i < maxCandidates.size(); i++) {
-            String challenger = maxCandidates.get(i);
-            System.out.println("[EdgeManager] 最大候选区比较: " + maxId + " vs " + challenger);
-
-            String cmpCipher = generateComparisonCipherText(maxId, challenger);
-            String compareResult = org.edgeServer1.utils.ComparePairClient.sendComparisonDataToEdgeServer2(maxId,
-                    challenger, cmpCipher);
-            while (compareResult == null) {
-                System.out.println("[EdgeManager] 网络或服务端异常，重试: " + maxId + " vs " + challenger);
-                compareResult = org.edgeServer1.utils.ComparePairClient.sendComparisonDataToEdgeServer2(maxId,
-                        challenger, cmpCipher);
-            }
-
-            org.json.JSONObject resultJson = new org.json.JSONObject(compareResult);
-            String bigger = resultJson.getString("bigger");
-            System.out.println("[EdgeManager] 最大候选区结果: bigger=" + bigger);
-            maxId = bigger;
-        }
-
-        // 3. 在minCandidates中找最小
-        String minId = minCandidates.get(0);
-        for (int i = 1; i < minCandidates.size(); i++) {
-            String challenger = minCandidates.get(i);
-            System.out.println("[EdgeManager] 最小候选区比较: " + minId + " vs " + challenger);
-
-            String cmpCipher = generateComparisonCipherText(minId, challenger);
-            String compareResult = org.edgeServer1.utils.ComparePairClient.sendComparisonDataToEdgeServer2(minId,
-                    challenger, cmpCipher);
-            while (compareResult == null) {
-                System.out.println("[EdgeManager] 网络或服务端异常，重试: " + minId + " vs " + challenger);
-                compareResult = org.edgeServer1.utils.ComparePairClient.sendComparisonDataToEdgeServer2(minId,
-                        challenger, cmpCipher);
-            }
-
-            org.json.JSONObject resultJson = new org.json.JSONObject(compareResult);
-            String smaller = resultJson.getString("smaller");
-            System.out.println("[EdgeManager] 最小候选区结果: smaller=" + smaller);
-            minId = smaller;
-        }
-
-        System.out.println("[EdgeManager] 最终最大值 clientId: " + maxId + ", 最小值 clientId: " + minId);
 
         // 通知edgeServer2保存极值
-        org.edgeServer1.utils.ComparePairClient.notifyEdgeServer2FinalResult(maxId, minId);
+        org.edgeServer1.utils.ComparePairClient.notifyEdgeServer2FinalResult("1", "2");
 
-        return "极值比较完成";
+        return "已批量发送比较请求到edgeServer2，共计 " + count + " 次比较请求。请等待edgeServer2处理结果。";
     }
 
     // 新增：只在最大区间找最大值，只在最小区间找最小值

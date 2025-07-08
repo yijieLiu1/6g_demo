@@ -20,6 +20,9 @@ public class Main {
             server.createContext("/post/cipherText", edgeServer3Handler);
             server.createContext("/post/triggerCompare", edgeServer3Handler);
 
+            server.createContext("/post/comparePair", edgeServer3Handler);
+            server.createContext("/post/finalCompareResult", edgeServer3Handler);
+
             // 设置线程池
             server.setExecutor(java.util.concurrent.Executors.newFixedThreadPool(56));
 

@@ -25,6 +25,8 @@ public class EdgeHandler implements HttpHandler {
             // 输出两个聚合密文
             String cipherText = EdgeManager.getAggregatedCipherText();
             String squareCipherText = EdgeManager.getAggregatedSquareCipherText();
+            // String squareCipherText = "0"; // 目前没有平方密文
+
             EdgeManager.sendAggregatedCipherTextToEdgeServer2(cipherText, squareCipherText);
             response = "sumcipherText:{\"cipherText\":\"" + cipherText + "\",\"squareCipherText\":\"" + squareCipherText
                     + "\"}";
@@ -61,9 +63,10 @@ public class EdgeHandler implements HttpHandler {
             System.out.println("开始执行/post/comparePair.....");
             if (exchange.getRequestMethod().equals("POST")) {
                 try {
-                    // String result =org.edgeServer1.utils.EdgeManager.findExtremes();
                     // 只在最大区间找最大值，最小区间找最小值
                     String result = org.edgeServer1.utils.EdgeManager.findExtremesByInterval();
+                    // 该方法只是测试edgeServer2解密比较密文的性能。
+                    // String result = org.edgeServer1.utils.EdgeManager.findExtremes();
                     sendResponse(exchange, 200, result);
                 } catch (Exception e) {
                     sendResponse(exchange, 500, "服务端异常: " + e.getMessage());

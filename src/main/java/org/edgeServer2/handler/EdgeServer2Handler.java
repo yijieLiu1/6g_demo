@@ -15,6 +15,7 @@ public class EdgeServer2Handler implements HttpHandler {
         String response;
         // 获取解密的聚合值。
         if (path.equals("/get/decryptedText")) {
+
             response = EdgeServer2Manager.getDecryptedText();
         }
         // edgeServer1-->get/sumcipherText时触发
@@ -37,7 +38,7 @@ public class EdgeServer2Handler implements HttpHandler {
                     EdgeServer2Manager.processAggregatedCipherText(aggregatedCipherText, clientCount);
                     // !！均值计算在processAggregatedCipherText之后，解密后才能求均值。E(x)
                     EdgeServer2Manager.processMeanData(clientCount);
-                    // !!方差计算在均值之后，E(X^2)-E(x)^2
+                    // // // !!方差计算在均值之后，E(X^2)-E(x)^2
                     EdgeServer2Manager.processVarianceData(squareCipherText, clientCount);
                     response = "Success";
                 } catch (Exception e) {

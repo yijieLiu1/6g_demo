@@ -43,10 +43,11 @@ public class EdgeServer2Manager {
                 decryptedText = m.setScale(2, RoundingMode.HALF_UP).toPlainString();
 
                 // 使用ImprovePaillier的SK_DO密钥对解密结果进行加密
-                BigDecimal scaled = new BigDecimal(decryptedText).setScale(SCALE, RoundingMode.HALF_UP);
+                BigDecimal scaled = new BigDecimal(decryptedText).setScale(SCALE,
+                        RoundingMode.HALF_UP);
                 BigInteger valueToEncrypt = scaled.multiply(BigDecimal.TEN.pow(SCALE)).toBigInteger();
                 BigInteger encryptedValue = ImprovePaillier.encrypt(valueToEncrypt, 0);
-                // 只保存，不自动上传
+                // // 只保存，不自动上传
                 lastImpaillierCipherText = encryptedValue.toString();
             } catch (Exception e) {
                 decryptedText = "Error decrypting: " + e.getMessage();
@@ -89,7 +90,7 @@ public class EdgeServer2Manager {
 
     public static void processComparisonData(String cipherText, String clientId1, String clientId2) {
         try {
-            // 幂等性保护：只处理每对client的第一条比较密文
+
             String key = clientId1 + "," + clientId2;
             if (compareMap.containsKey(key)) {
                 // 已处理过，直接丢弃
@@ -98,8 +99,6 @@ public class EdgeServer2Manager {
             BigInteger c = new BigInteger(cipherText);
             BigDecimal m_blinded = Paillier.decrypt(c);
             BigInteger M = m_blinded.toBigInteger();
-            BigInteger n = Paillier.getPublicKey();
-            BigInteger halfN = n.divide(BigInteger.TWO);
             String outcome;
 
             // === 记录相邻比较结果 ===
@@ -292,7 +291,5 @@ public class EdgeServer2Manager {
     public static String getCompareResult() {
         return String.format("最大值 clientId: %s, 最小值 clientId: %s", maxId, minId);
     }
-
-    // 链式极值推导结构重置
 
 }

@@ -15,23 +15,21 @@ public class EdgeServer4Manager {
     private static final String CENTER_SERVER_URL = "http://localhost:33333";
     private static final HttpClient httpClient = HttpClient.newHttpClient();
     private static final int SCALE = 8; // 保留8位小数
+    // 新增：保存最大最小id
+    private static String maxId = null;
+    private static String minId = null;
     private static String lastImpaillierCipherText = "";
     private static BigDecimal meanValue = null;
-    private static int lastClientCount = 0;
     private static BigDecimal ex2Value = null;
-    private static Double varianceValue = null;
+    private static BigDecimal varianceValue = null;
+    private static int lastClientCount = 0;
 
-    // 比较结果内部类
-    private static class ComparisonResult {
-        String decryptedValue;
-        String outcomeMessage;
-    }
-
-    private static ComparisonResult lastComparisonResult = null;
-
-    // 比较结果统计结构
     private static final java.util.Map<String, String> compareMap = new java.util.LinkedHashMap<>();
     private static final java.util.Set<String> clientIdSet = new java.util.HashSet<>();
+
+    // 在求极值时的调试信息（可选）
+    private static int compareCount = 0;
+    private static long compareStartTime = 0;
 
     public static void processAggregatedCipherText(String cipherText, int clientCount) {
         lastClientCount = clientCount;
@@ -43,8 +41,7 @@ public class EdgeServer4Manager {
                 BigDecimal m = Paillier.decrypt(c);
                 // 保留2位小数，确保正确显示负数
                 decryptedText = m.setScale(2, RoundingMode.HALF_UP).toPlainString();
-                // 计算均值
-                processMeanData(m, clientCount);
+
                 // 使用ImprovePaillier的SK_DO密钥对解密结果进行加密
                 BigDecimal scaled = new BigDecimal(decryptedText).setScale(SCALE, RoundingMode.HALF_UP);
                 BigInteger valueToEncrypt = scaled.multiply(BigDecimal.TEN.pow(SCALE)).toBigInteger();
@@ -59,6 +56,79 @@ public class EdgeServer4Manager {
         } else {
             decryptedText = "No cipher text received";
             System.out.println("没有接收到密文");
+        }
+    }
+
+    // 用于处理计算方差值。
+    public static void processVarianceData(String squareCipherText, int clientCount) {
+        if (squareCipherText == null || squareCipherText.isEmpty() || clientCount == 0) {
+            ex2Value = null;
+            varianceValue = null;
+            return;
+        }
+        try {
+            BigInteger c = new BigInteger(squareCipherText);
+            BigDecimal sumX2 = Paillier.decrypt(c);
+            System.out.println("Sum of squares decrypted: " + sumX2);
+            ex2Value = sumX2.divide(new BigDecimal(clientCount), 8, RoundingMode.HALF_UP);
+            System.out.println("Ex2 Value: " + ex2Value);
+
+            if (meanValue != null && ex2Value != null) {
+                BigDecimal meanValueSquared = meanValue.pow(2);
+                System.out.println("Mean Value Squared: " + meanValueSquared);
+                varianceValue = ex2Value.subtract(meanValueSquared);
+                System.out.println("Variance Value: " + varianceValue);
+            } else {
+                varianceValue = null;
+            }
+        } catch (Exception e) {
+            ex2Value = null;
+            varianceValue = null;
+        }
+    }
+
+    public static void processComparisonData(String cipherText, String clientId1, String clientId2) {
+        try {
+
+            String key = clientId1 + "," + clientId2;
+            if (compareMap.containsKey(key)) {
+                // 已处理过，直接丢弃
+                return;
+            }
+            BigInteger c = new BigInteger(cipherText);
+            BigDecimal m_blinded = Paillier.decrypt(c);
+            BigInteger M = m_blinded.toBigInteger();
+            String outcome;
+
+            // === 记录相邻比较结果 ===
+            clientIdSet.add(clientId1);
+            clientIdSet.add(clientId2);
+            if (M.compareTo(BigInteger.ZERO) < 0) {
+                compareMap.put(key, "lt"); // clientId1 < clientId2
+            } else {
+                compareMap.put(key, "gt"); // clientId1 > clientId2
+            }
+
+            if (M.compareTo(BigInteger.ZERO) < 0) {
+                outcome = String.format("\n客户端 %s 的数小于客户端 %s.", clientId1, clientId2);
+            } else {
+                outcome = String.format("\n客户端 %s 的数大于客户端 %s.", clientId1, clientId2);
+            }
+
+            System.out.println("Comparison processed. Decrypted value: " + M + ". Outcome: " + outcome);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    // 解密聚合值在processAggregatedCipherText中已经实现。所以直接使用decryptedText即可。
+    public static void processMeanData(int clientCount) {
+        if (clientCount > 0) {
+            BigDecimal m = new BigDecimal(decryptedText);
+            meanValue = m.divide(new BigDecimal(clientCount), 8,
+                    RoundingMode.HALF_UP);
+        } else {
+            meanValue = null;
         }
     }
 
@@ -128,60 +198,6 @@ public class EdgeServer4Manager {
         return debugInfo;
     }
 
-    public static String getReceivedCipherText() {
-        return receivedCipherText.isEmpty() ? "No cipher text received" : receivedCipherText;
-    }
-
-    // 处理比较密文，记录比较结果
-    public static void processComparisonData(String cipherText, String clientId1, String clientId2) {
-        try {
-            String key = clientId1 + "," + clientId2;
-            if (compareMap.containsKey(key)) {
-                return;
-            }
-            BigInteger c = new BigInteger(cipherText);
-            BigDecimal m_blinded = Paillier.decrypt(c);
-            BigInteger M = m_blinded.toBigInteger();
-            clientIdSet.add(clientId1);
-            clientIdSet.add(clientId2);
-            if (M.compareTo(BigInteger.ZERO) < 0) {
-                compareMap.put(key, "lt");
-            } else {
-                compareMap.put(key, "gt");
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    // 极值推导方法
-    public static String getCompareResult() {
-        java.util.Map<String, Integer> defeatedCount = new java.util.HashMap<>();
-        for (String id : clientIdSet) {
-            defeatedCount.put(id, 0);
-        }
-        for (java.util.Map.Entry<String, String> entry : compareMap.entrySet()) {
-            String key = entry.getKey();
-            String cmp = entry.getValue();
-            String[] ids = key.split(",");
-            String id1 = ids[0], id2 = ids[1];
-            if ("gt".equals(cmp)) {
-                defeatedCount.put(id2, defeatedCount.get(id2) + 1);
-            } else if ("lt".equals(cmp)) {
-                defeatedCount.put(id1, defeatedCount.get(id1) + 1);
-            }
-        }
-        String maxId = null, minId = null;
-        int n = defeatedCount.size();
-        for (java.util.Map.Entry<String, Integer> entry : defeatedCount.entrySet()) {
-            if (entry.getValue() == 0)
-                maxId = entry.getKey();
-            if (entry.getValue() == n - 1)
-                minId = entry.getKey();
-        }
-        return String.format("最大值 clientId: %s, 最小值 clientId: %s", maxId, minId);
-    }
-
     // 新增：获取ImprovePaillier密文并上传centerServer
     public static String getImpaillierCipherText() {
         if (lastImpaillierCipherText == null || lastImpaillierCipherText.isEmpty()) {
@@ -231,14 +247,6 @@ public class EdgeServer4Manager {
         }
     }
 
-    public static void processMeanData(BigDecimal decryptedValue, int clientCount) {
-        if (clientCount > 0) {
-            meanValue = decryptedValue.divide(new BigDecimal(clientCount), 8, RoundingMode.HALF_UP);
-        } else {
-            meanValue = null;
-        }
-    }
-
     public static String getMeanResult() {
         if (meanValue == null) {
             return "Mean Result: 未计算或clientCount为0\n";
@@ -246,31 +254,45 @@ public class EdgeServer4Manager {
         return "Mean Result: " + meanValue.setScale(8, RoundingMode.HALF_UP).toPlainString() + "\n";
     }
 
-    public static void processVarianceData(String squareCipherText, int clientCount) {
-        if (squareCipherText == null || squareCipherText.isEmpty() || clientCount == 0) {
-            ex2Value = null;
-            varianceValue = null;
-            return;
-        }
-        try {
-            BigInteger c = new BigInteger(squareCipherText);
-            BigDecimal sumX2 = Paillier.decrypt(c);
-            ex2Value = sumX2.divide(new BigDecimal(clientCount), 8, RoundingMode.HALF_UP);
-            if (meanValue != null && ex2Value != null) {
-                varianceValue = ex2Value.doubleValue() - Math.pow(meanValue.doubleValue(), 2);
-            } else {
-                varianceValue = null;
-            }
-        } catch (Exception e) {
-            ex2Value = null;
-            varianceValue = null;
-        }
-    }
-
+    // 获取当前所有client值的方差
     public static String getVarianceResult() {
         if (varianceValue == null) {
             return "Variance Result: 未计算或数据不足\n";
         }
-        return "Variance Result: " + String.format("%.8f", varianceValue) + "\n";
+        return "方差结果: " + varianceValue.setScale(8, RoundingMode.HALF_UP).toPlainString() + "\n";
+    }
+
+    public static String compareAndGetBigger(String clientId1, String clientId2, String cmpCipher) {
+        try {
+            if (compareCount == 0) {
+                compareStartTime = System.currentTimeMillis();
+            }
+            compareCount++;
+            System.out.println("[compare] 第 " + compareCount + " 次解密: " + clientId1 + " vs " + clientId2);
+            BigInteger c = new BigInteger(cmpCipher);
+            BigDecimal m_blinded = Paillier.decrypt(c);
+            BigInteger M = m_blinded.toBigInteger();
+            if (M.compareTo(BigInteger.ZERO) < 0) {
+                return clientId2;
+            } else {
+                return clientId1;
+            }
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    public static void saveCompareResult(String max, String min) {
+        maxId = max;
+        minId = min;
+        long cost = System.currentTimeMillis() - compareStartTime;
+        System.out.println("[compare] 总共解密 " + compareCount + " 次，总耗时 " + cost + " ms");
+        compareCount = 0;
+        compareStartTime = 0;
+    }
+
+    // getCompareResult返回最大最小id
+    public static String getCompareResult() {
+        return String.format("最大值 clientId: %s, 最小值 clientId: %s", maxId, minId);
     }
 }
