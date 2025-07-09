@@ -212,35 +212,39 @@ public class EdgeManager {
     }
 
     // 只是为了单纯测试比较的性能。
-    public static String findExtremes() {
-        java.util.List<String> clientIds = getAllClientIds();
-        if (clientIds.size() < 2) {
-            return "Not enough clients to compare";
-        }
+    // public static String findExtremes() {
+    // java.util.List<String> clientIds = getAllClientIds();
+    // if (clientIds.size() < 2) {
+    // return "Not enough clients to compare";
+    // }
 
-        int n = clientIds.size();
-        int count = 0;
-        for (int i = 0; i < n - 1; i++) {
-            String a = clientIds.get(i);
-            String b = clientIds.get(i + 1);
-            System.out.println("[EdgeManager] 分组: " + a + " vs " + b);
+    // int n = clientIds.size();
+    // int count = 0;
+    // for (int i = 0; i < n - 1; i++) {
+    // String a = clientIds.get(i);
+    // String b = clientIds.get(i + 1);
+    // System.out.println("[EdgeManager] 分组: " + a + " vs " + b);
 
-            String cmpCipher = generateComparisonCipherText(a, b);
+    // String cmpCipher = generateComparisonCipherText(a, b);
 
-            org.edgeServer1.utils.ComparePairClient.sendComparisonDataToEdgeServer2(a, b, cmpCipher);
-            count++;
-        }
+    // org.edgeServer1.utils.ComparePairClient.sendComparisonDataToEdgeServer2(a, b,
+    // cmpCipher);
+    // count++;
+    // }
 
-        // 通知edgeServer2保存极值
-        org.edgeServer1.utils.ComparePairClient.notifyEdgeServer2FinalResult("1", "2");
+    // // 通知edgeServer2保存极值
+    // org.edgeServer1.utils.ComparePairClient.notifyEdgeServer2FinalResult("1",
+    // "2");
 
-        return "已批量发送比较请求到edgeServer2，共计 " + count + " 次比较请求。请等待edgeServer2处理结果。";
-    }
+    // return "已批量发送比较请求到edgeServer2，共计 " + count + " 次比较请求。请等待edgeServer2处理结果。";
+    // }
 
     // 新增：只在最大区间找最大值，只在最小区间找最小值
     // 提前划分好区间。相比于之前的方案，省去了找最大client的候选区和最小client候选区的代码。
     // 直接在最大区间内找最大值，在最小区间内找最小值。数据量通常更小
     public static String findExtremesByInterval() {
+        System.out.println("\n\nedgeServer1收到/post/comparePair请求，开始处理比较数据......");
+        long startTime = System.currentTimeMillis();
         java.util.List<String> clientIds = getAllClientIds();
         if (clientIds.size() < 2) {
             return "Not enough clients to compare";
@@ -293,11 +297,15 @@ public class EdgeManager {
             String smaller = resultJson.getString("smaller");
             minId = smaller;
         }
+        long endTime = System.currentTimeMillis();
+        System.out.println("[EdgeManager] 极值比较完成: maxId=" + maxId + ", minId=" + minId);
+        System.out.println("\nedgeServer1处理比较数据结束......共耗时" + (endTime - startTime) + "ms");
         // 通知edgeServer2保存极值
-        org.edgeServer1.utils.ComparePairClient.notifyEdgeServer2FinalResult(maxId, minId);
+        org.edgeServer1.utils.ComparePairClient.notifyEdgeServer2FinalResult(maxId, minId, endTime - startTime);
         // 本地保存极值
         lastMaxClientId = maxId;
         lastMinClientId = minId;
+
         return "极值比较完成（区间优化/排序优化）";
     }
 

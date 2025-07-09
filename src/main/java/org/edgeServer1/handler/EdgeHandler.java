@@ -24,16 +24,20 @@ public class EdgeHandler implements HttpHandler {
         }
         // 执行密文连乘，输出密文，并把聚合后的密文发送给edgeServer2
         else if (path.equals("/get/sumcipherText")) {
+            System.out.println("\n\nedgeServer1收到/get/sumcipherText请求，开始聚合密文......");
             long startTime = System.currentTimeMillis();
-            // 输出两个聚合密文
             String cipherText = EdgeManager.getAggregatedCipherText();
+            long endTime = System.currentTimeMillis();
+            System.out.println("\nedgeServer1聚合普通密文结束......共耗时" + (endTime - startTime) + "ms");
+
+            long startTime2 = System.currentTimeMillis();
             String squareCipherText = EdgeManager.getAggregatedSquareCipherText();
-            // String squareCipherText = "0"; // 目前没有平方密文
+            long endTime2 = System.currentTimeMillis();
+            System.out.println("\nedgeServer1聚合平方密文结束......共耗时" + (endTime2 - startTime2) + "ms");
 
             EdgeManager.sendAggregatedCipherTextToEdgeServer2(cipherText, squareCipherText);
-            long endTime = System.currentTimeMillis();
             response = "sumcipherText:{\"cipherText\":\"" + cipherText + "\",\"squareCipherText\":\"" + squareCipherText
-                    + "\"}+" + " Time taken: " + (endTime - startTime) + "ms";
+                    + "\"}";
         }
         // 接收来自dataClient发送的密文,并注册client
         // cipherText密文，squareCipherText平方密文，interval区间
@@ -96,13 +100,14 @@ public class EdgeHandler implements HttpHandler {
         }
 
         else if (path.equals("/post/comparePair")) {
-            System.out.println("开始执行/post/comparePair.....");
+
             if (exchange.getRequestMethod().equals("POST")) {
                 try {
                     // 只在最大区间找最大值，最小区间找最小值
                     String result = EdgeManager.findExtremesByInterval();
                     // 该方法只是测试edgeServer2解密比较密文的性能。
                     // String result = EdgeManager.findExtremes();
+
                     sendResponse(exchange, 200, result);
                 } catch (Exception e) {
                     sendResponse(exchange, 500, "服务端异常: " + e.getMessage());

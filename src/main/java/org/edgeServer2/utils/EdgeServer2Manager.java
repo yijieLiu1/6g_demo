@@ -33,8 +33,19 @@ public class EdgeServer2Manager {
     private static int compareCount = 0;
     private static long compareStartTime = 0;
 
+    // 新增：只保存密文和clientCount
+    private static String savedCipherText = null;
+    private static String savedSquareCipherText = null;
+    private static int savedClientCount = 0;
+
+    public static void saveAggregatedCipherText(String cipherText, String squareCipherText, int clientCount) {
+        savedCipherText = cipherText;
+        savedSquareCipherText = squareCipherText;
+        savedClientCount = clientCount;
+    }
+
     public static void processAggregatedCipherText(String cipherText, int clientCount) {
-        lastClientCount = clientCount;
+        System.out.println("edgeServer2开始解密......密文" + cipherText);
         receivedCipherText = cipherText;
         if (!cipherText.isEmpty()) {
             try {
@@ -43,14 +54,8 @@ public class EdgeServer2Manager {
                 BigDecimal m = Paillier.decrypt(c);
                 // 保留2位小数，确保正确显示负数
                 decryptedText = m.setScale(2, RoundingMode.HALF_UP).toPlainString();
+                System.out.println("edgeServer2解密完成......结果: " + decryptedText);
 
-                // 使用ImprovePaillier的SK_DO密钥对解密结果进行加密
-                BigDecimal scaled = new BigDecimal(decryptedText).setScale(SCALE,
-                        RoundingMode.HALF_UP);
-                BigInteger valueToEncrypt = scaled.multiply(BigDecimal.TEN.pow(SCALE)).toBigInteger();
-                BigInteger encryptedValue = ImprovePaillier.encrypt(valueToEncrypt, 0);
-                // // 只保存，不自动上传
-                lastImpaillierCipherText = encryptedValue.toString();
             } catch (Exception e) {
                 decryptedText = "Error decrypting: " + e.getMessage();
                 System.out.println("解密错误: " + e.getMessage());
@@ -64,6 +69,7 @@ public class EdgeServer2Manager {
 
     // 用于处理计算方差值。
     public static void processVarianceData(String squareCipherText, int clientCount) {
+        System.out.println("edgeServer2开始计算方差......sum^2密文: " + squareCipherText + ", 当前client数: " + clientCount);
         if (squareCipherText == null || squareCipherText.isEmpty() || clientCount == 0) {
             ex2Value = null;
             varianceValue = null;
@@ -73,7 +79,7 @@ public class EdgeServer2Manager {
         try {
             BigInteger c = new BigInteger(squareCipherText);
             sumX2 = Paillier.decrypt(c);
-            System.out.println("Sum of squares decrypted: " + sumX2);
+            System.out.println("edgeServer2解密平方密文结束......sum^2结果 " + sumX2);
             ex2Value = sumX2.divide(new BigDecimal(clientCount), 8, RoundingMode.HALF_UP);
             System.out.println("Ex2 Value: " + ex2Value);
 
@@ -81,7 +87,8 @@ public class EdgeServer2Manager {
                 BigDecimal meanValueSquared = meanValue.pow(2);
                 System.out.println("Mean Value Squared: " + meanValueSquared);
                 varianceValue = ex2Value.subtract(meanValueSquared);
-                System.out.println("Variance Value: " + varianceValue);
+                System.out.println("edgeServer2计算E(x^2)-E(x)^2;E(x^2): " + ex2Value + ", E(x)^2: " + meanValueSquared);
+                System.out.println("edgeServer2方差计算结束......方差结果" + varianceValue);
             } else {
                 varianceValue = null;
             }
@@ -127,10 +134,12 @@ public class EdgeServer2Manager {
 
     // 解密聚合值在processAggregatedCipherText中已经实现。所以直接使用decryptedText即可。
     public static void processMeanData(int clientCount) {
+        System.out.println("edgeServer2开始计算均值......clientCount: " + clientCount);
         if (clientCount > 0) {
             BigDecimal m = new BigDecimal(decryptedText);
             meanValue = m.divide(new BigDecimal(clientCount), 8,
                     RoundingMode.HALF_UP);
+            System.out.println("edgeServer2计算均值完成......结果: " + meanValue);
         } else {
             meanValue = null;
         }
@@ -162,104 +171,54 @@ public class EdgeServer2Manager {
         }
     }
 
-    public static String getDecryptedText() {
-        String debugInfo = String.format(
-                "当前状态:\n" +
-                        "是否接收到密文: %s\n" +
-                        "密文内容: %s\n" +
-                        "解密结果: %s",
-                !receivedCipherText.isEmpty() ? "是" : "否",
-                receivedCipherText.isEmpty() ? "无" : receivedCipherText,
-                decryptedText.isEmpty() ? "无" : decryptedText);
-
-        if (!receivedCipherText.isEmpty()) {
-            try {
-                BigInteger c = new BigInteger(receivedCipherText);
-                BigDecimal m = Paillier.decrypt(c);
-                BigInteger n = Paillier.getPublicKey();
-                BigInteger halfN = n.divide(BigInteger.TWO);
-
-                debugInfo += String.format(
-                        "\n\n解密详细信息:\n" +
-                                "接收到的密文: %s\n" +
-                                "n的值: %s\n" +
-                                "n/2的值: %s\n" +
-                                "解密后的原始值: %s\n" +
-                                "解密后的整数: %s\n" +
-                                "最终结果: %s",
-                        c,
-                        n,
-                        halfN,
-                        m,
-                        m.multiply(BigDecimal.TEN.pow(8)).toBigInteger(),
-                        m.setScale(2, RoundingMode.HALF_UP).toPlainString());
-            } catch (Exception e) {
-                debugInfo += "\n\n解密错误: " + e.getMessage();
-            }
-        }
-
-        return debugInfo;
-    }
-
     // 新增：获取ImprovePaillier密文并上传centerServer
     public static String getImpaillierCipherText() {
-        if (lastImpaillierCipherText == null || lastImpaillierCipherText.isEmpty()) {
-            return "No ImprovePaillier cipher text available.";
-        }
+        // 使用ImprovePaillier的SK_DO密钥对解密结果进行加密
+        BigDecimal scaled = new BigDecimal(decryptedText).setScale(SCALE,
+                RoundingMode.HALF_UP);
+        BigInteger valueToEncrypt = scaled.multiply(BigDecimal.TEN.pow(SCALE)).toBigInteger();
+        BigInteger encryptedValue = ImprovePaillier.encrypt(valueToEncrypt, 0);
+        // // 只保存，不自动上传
+        lastImpaillierCipherText = encryptedValue.toString();
         sendEncryptedValueToCenterServer(lastImpaillierCipherText, lastClientCount);
         return lastImpaillierCipherText;
     }
 
-    // // 生成En(r1*m1+r2)密文并发送到centerServer,废弃
-    // public static String generateAndSendCompareCipherText() {
-    // try {
-    // java.security.SecureRandom random = new java.security.SecureRandom();
-    // java.math.BigDecimal m1 = decryptedText.isEmpty() ? java.math.BigDecimal.ZERO
-    // : new java.math.BigDecimal(decryptedText);
-    // java.math.BigInteger r1 = new java.math.BigInteger(
-    // "106825203108678901282936524768508786416970440522324880302033274827400270090769");
-    // java.math.BigInteger r2 = new java.math.BigInteger(128, random);
-    // java.math.BigDecimal blinded = m1.multiply(new
-    // java.math.BigDecimal(r1)).add(new java.math.BigDecimal(r2));
-    // java.math.BigInteger cipher =
-    // org.edgeServer2.utils.Paillier.encrypt(blinded);
-    // // 发送到centerServer
-    // sendCompareCipherTextToCenterServer(cipher.toString());
-    // return cipher.toString();
-    // } catch (Exception e) {
-    // return "Error generating compare cipher text: " + e.getMessage();
-    // }
-    // }
+    // /get/decryptedText时才解密
+    public static String decryptAndGetDecryptedText() {
+        if (savedCipherText == null || savedCipherText.isEmpty()) {
+            return "No cipher text saved.";
+        }
 
-    // private static void sendCompareCipherTextToCenterServer(String cipherText) {
-    // try {
-    // java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()
-    // .uri(java.net.URI.create(CENTER_SERVER_URL + "/post/compareCipherText"))
-    // .header("Content-Type", "text/plain")
-    // .header("Server-Type", "server2")
-    // .POST(java.net.http.HttpRequest.BodyPublishers.ofString(cipherText))
-    // .build();
-    // java.net.http.HttpResponse<String> response = httpClient.send(request,
-    // java.net.http.HttpResponse.BodyHandlers.ofString());
-    // if (response.statusCode() != 200) {
-    // System.err.println("Failed to send compare cipher text to center server: " +
-    // response.body());
-    // }
-    // } catch (Exception e) {
-    // System.err.println("Error sending compare cipher text to center server: " +
-    // e.getMessage());
-    // }
-    // }
+        processAggregatedCipherText(savedCipherText, savedClientCount); // 每次都解密
 
-    public static String getMeanResult() {
+        return "聚合值结果：" + decryptedText;
+    }
+
+    // /get/meanResult时才计算均值
+    public static String processAndGetMeanResult() {
+        if (savedCipherText == null || savedCipherText.isEmpty()) {
+            return "No cipher text saved.";
+        }
+        processAggregatedCipherText(savedCipherText, savedClientCount); // 每次都解密
+        processMeanData(savedClientCount);
         if (meanValue == null) {
             return "Mean Result: 未计算或clientCount为0\n";
         }
         return "Mean Result: " + meanValue.setScale(8, RoundingMode.HALF_UP).toPlainString() + "\n";
     }
 
-    // 获取当前所有client值的方差
-    public static String getVarianceResult() {
+    // /get/varianceResult时才计算方差
+    public static String processAndGetVarianceResult() {
+        if (savedCipherText == null || savedCipherText.isEmpty() || savedSquareCipherText == null
+                || savedSquareCipherText.isEmpty()) {
+            return "No cipher text or square cipher text saved.";
+        }
+        processAggregatedCipherText(savedCipherText, savedClientCount); // 解密
+
+        processMeanData(savedClientCount);// 求均值
+
+        processVarianceData(savedSquareCipherText, savedClientCount);
         if (varianceValue == null) {
             return "Variance Result: 未计算或数据不足\n";
         }

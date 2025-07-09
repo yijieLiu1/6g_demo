@@ -6,7 +6,7 @@ import java.text.DecimalFormat;
 
 public class dataGenerate {
     private static final String CSV_FILE_PATH = "data.csv";
-    private static final int NUM_ROWS = 100; // 可以根据需要修改行数
+    private static final int NUM_ROWS = 1000; // 可以根据需要修改行数
     private static final int MIN_AGE = 0;
     private static final int MAX_AGE = 100;
     private static final int INTERVAL = 10;

@@ -15,8 +15,12 @@ public class EdgeServer2Handler implements HttpHandler {
         String response;
         // 获取解密的聚合值。
         if (path.equals("/get/decryptedText")) {
+            System.out.println("\n\nedgeServer2收到/get/decryptedText请求，开始解密聚合值......");
+            long startTime = System.currentTimeMillis();
+            response = EdgeServer2Manager.decryptAndGetDecryptedText();
+            long endTime = System.currentTimeMillis();
+            System.out.println("\nedgeServer2解密聚合值结束......共耗时" + (endTime - startTime) + "ms");
 
-            response = EdgeServer2Manager.getDecryptedText();
         }
         // edgeServer1-->get/sumcipherText时触发
         // edgeServer2用于响应请求，并保存聚合密文和聚合的平分密文。
@@ -34,12 +38,8 @@ public class EdgeServer2Handler implements HttpHandler {
                     String aggregatedCipherText = json.getString("cipherText");
                     String squareCipherText = json.getString("squareCipherText");
                     int clientCount = json.getInt("clientCount");
-                    // 解密聚合值，也构建好了ImprovePaillier的密文
-                    EdgeServer2Manager.processAggregatedCipherText(aggregatedCipherText, clientCount);
-                    // !！均值计算在processAggregatedCipherText之后，解密后才能求均值。E(x)
-                    EdgeServer2Manager.processMeanData(clientCount);
-                    // // // !!方差计算在均值之后，E(X^2)-E(x)^2
-                    EdgeServer2Manager.processVarianceData(squareCipherText, clientCount);
+                    // 只保存，不做解密和计算
+                    EdgeServer2Manager.saveAggregatedCipherText(aggregatedCipherText, squareCipherText, clientCount);
                     response = "Success";
                 } catch (Exception e) {
                     sendResponse(exchange, 400, "Invalid JSON or missing fields");
@@ -56,6 +56,7 @@ public class EdgeServer2Handler implements HttpHandler {
         }
         // 响应edgeServer1的密文请求，并处理。
         else if (path.equals("/post/comparisonData")) {
+            System.out.println("\n\nedgeServer2收到/post/comparisonData请求，开始处理比较数据......");
             if (exchange.getRequestMethod().equalsIgnoreCase("POST")) {
                 String clientId1 = exchange.getRequestHeaders().getFirst("Client-ID1");
                 String clientId2 = exchange.getRequestHeaders().getFirst("Client-ID2");
@@ -91,11 +92,19 @@ public class EdgeServer2Handler implements HttpHandler {
         }
         // 获取平均值
         else if (path.equals("/get/meanResult")) {
-            response = EdgeServer2Manager.getMeanResult();
+            System.out.println("\n\nedgeServer2收到/get/meanResult请求，开始计算平均值......");
+            long startTime = System.currentTimeMillis();
+            response = EdgeServer2Manager.processAndGetMeanResult();
+            long endTime = System.currentTimeMillis();
+            System.out.println("\nedgeServer2计算平均值结束......共耗时" + (endTime - startTime) + "ms");
         }
         // 获取方差结果
         else if (path.equals("/get/varianceResult")) {
-            response = EdgeServer2Manager.getVarianceResult();
+            System.out.println("\n\nedgeServer2收到/get/varianceResult请求，开始计算方差结果......");
+            long startTime = System.currentTimeMillis();
+            response = EdgeServer2Manager.processAndGetVarianceResult();
+            long endTime = System.currentTimeMillis();
+            System.out.println("\nedgeServer2计算方差结果结束......共耗时" + (endTime - startTime) + "ms");
         }
         // 接收来自edgeServer1的最终极值保存请求,只接收最后一轮的比较结果。
         else if (path.equals("/post/finalCompareResult")) {
@@ -112,7 +121,9 @@ public class EdgeServer2Handler implements HttpHandler {
                     org.json.JSONObject json = new org.json.JSONObject(body);
                     String maxId = json.getString("maxId");
                     String minId = json.getString("minId");
-                    System.out.println("[finalCompareResult] 保存极值: maxId=" + maxId + ", minId=" + minId);
+                    String computeTime = json.getString("computeTime");
+                    System.out.println("[finalCompareResult] 保存极值: 最大值Id=" + maxId + ", 最小值Id=" + minId
+                            + " 共计用时=" + computeTime);
                     org.edgeServer2.utils.EdgeServer2Manager.saveCompareResult(maxId, minId);
                     sendResponse(exchange, 200, "Final result saved");
                 } catch (Exception e) {
