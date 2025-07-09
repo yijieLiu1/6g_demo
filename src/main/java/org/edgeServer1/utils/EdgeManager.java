@@ -1,5 +1,7 @@
 package org.edgeServer1.utils;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.math.BigInteger;
 import java.net.http.HttpClient;
@@ -7,7 +9,6 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.security.SecureRandom;
 import java.net.URI;
-import org.edgeServer2.utils.Paillier;
 import org.json.JSONObject;
 
 public class EdgeManager {
@@ -16,6 +17,7 @@ public class EdgeManager {
     private static final ConcurrentHashMap<String, String> clientSquareCipherTexts = new ConcurrentHashMap<>();
     private static String aggregatedSquareCipherText = "";
     private static final String EDGE_SERVER2_URL = "http://localhost:33456";
+    private static final String CENTER_SERVER_URL = "http://localhost:33333";
     private static final HttpClient httpClient = HttpClient.newHttpClient();
     private static final ConcurrentHashMap<String, String> clientIntervals = new ConcurrentHashMap<>();
 
@@ -97,7 +99,32 @@ public class EdgeManager {
         }
     }
 
-    // 生成两个客户端密文的比较密文
+    // 当求得极值后，向中心服务器发送自己的极值client的信息，以便centerServer进行极值比较。
+    public static void sendExtremeCipherTextToCenterServer(String maxId, String maxCipherText, String minId,
+            String minCipherText) {
+        // 发送极值比较密文到中心服务器
+        try {
+            JSONObject json = new JSONObject();
+            json.put("maxClientId", maxId);
+            json.put("maxCipherText", maxCipherText);
+            json.put("minClientId", minId);
+            json.put("minCipherText", minCipherText);
+            json.put("serverId", "edgeServer1"); // 假设这是edgeServer1的ID
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(CENTER_SERVER_URL + "/post/extremeCipherText"))
+                    .header("Content-Type", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(json.toString()))
+                    .build();
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() != 200) {
+                System.err.println("Failed to send comparison cipher text to center server: " + response.body());
+            }
+        } catch (Exception e) {
+            System.err.println("Error sending comparison cipher text to center server: " + e.getMessage());
+        }
+    }
+
+    // 生成两个客户端密文的比较密文--边缘服务器
     // En(r1*(m1-m2)+r2)
     public static String generateComparisonCipherText(String clientId1, String clientId2) {
         String cipherText1Str = clientCipherTexts.get(clientId1);
@@ -125,6 +152,45 @@ public class EdgeManager {
         BigInteger finalCipherText = blindedDiffCipherText.multiply(r2CipherText).mod(nSquared);
 
         return finalCipherText.toString();
+    }
+
+    // 生成极值比较密文--中心服务器
+    // En(r1*m1+r2)
+    public static String generateExtremeCipherTextforCenterServer(String clientId) {
+        String cipheStringrText = clientCipherTexts.get(clientId);
+        if (cipheStringrText == null) {
+            return "Error: Client cipher not found.";
+        }
+        SecureRandom random = new SecureRandom();
+
+        BigInteger m1 = new BigInteger(cipheStringrText);
+        BigInteger r1 = new BigInteger(
+                "106825203108678901282936524768508786416970440522324880302033274827400270090769");
+        BigInteger r2 = new BigInteger(128, random);
+        BigInteger blinded = m1.multiply(r1).add(r2);
+        BigInteger cipher = Paillier.encrypt(blinded);
+        return cipher.toString();
+
+    }
+
+    // 获取经过比较后的极值大值的比较密文和极小值的比较密文
+    public static Map<String, String> getExtremeCipherText() {
+        Map<String, String> result = new HashMap<>();
+        if (lastMaxClientId == null || lastMinClientId == null) {
+            result.put("error", "No extremes found yet.");
+            return result;
+        }
+        // 生成极值的比较密文。En(r1*m1+r2)
+        String maxCipherText = generateExtremeCipherTextforCenterServer(lastMaxClientId);
+        String minCipherText = generateExtremeCipherTextforCenterServer(lastMinClientId);
+
+        if (maxCipherText == null || minCipherText == null) {
+            result.put("error", "Extreme client cipher texts not found.");
+            return result;
+        }
+        result.put(lastMaxClientId, maxCipherText);
+        result.put(lastMinClientId, minCipherText);
+        return result;
     }
 
     public static String getAggregatedCipherText() {

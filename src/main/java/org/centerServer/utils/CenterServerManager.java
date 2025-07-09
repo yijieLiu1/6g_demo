@@ -12,15 +12,18 @@ public class CenterServerManager {
     private static String aggregatedCipherText = "";
     private static String decryptedText = "";
     private static final int SCALE = 8; // 保留8位小数
-    // 新增：存储来自edgeServer2和4的比较密文
-    private static String compareCipherTextFromServer2 = "";
-    private static String compareCipherTextFromServer4 = "";
     private static final Map<String, Integer> clientCountMap = new ConcurrentHashMap<>();
     // 新增：用于存储所有收到的方差密文，key为serverType，value为密文
     private static final Map<String, String> varianceCipherTextMap = new ConcurrentHashMap<>();
     private static String varianceDecryptedText = "";
     // 新增：存储均值
-    private static String meanValue = "";
+    // 新增：存储极值密文和clientId
+    private static String maxClientId1 = null, maxCipherText1 = null;
+    private static String maxClientId3 = null, maxCipherText3 = null;
+    private static String minClientId1 = null, minCipherText1 = null;
+    private static String minClientId3 = null, minCipherText3 = null;
+    private static String extremeMaxId = null, extremeMinId = null;
+    private static boolean compared = false;
 
     public static void processAggregatedCipherText(String serverType, String cipherText, int clientCount) {
         receivedCipherTextMap.put(serverType, cipherText);
@@ -64,42 +67,6 @@ public class CenterServerManager {
         response.append("聚合密文: ").append(aggregatedCipherText.isEmpty() ? "未生成" : aggregatedCipherText).append("\n");
         response.append("解密结果: ").append(decryptedText.isEmpty() ? "未解密" : decryptedText);
         return response.toString();
-    }
-
-    public static void processCompareCipherText(String serverType, String cipherText) {
-        if (serverType.equals("server2")) {
-            compareCipherTextFromServer2 = cipherText;
-        } else if (serverType.equals("server4")) {
-            compareCipherTextFromServer4 = cipherText;
-        }
-    }
-
-    // 新增：解密、求和、判断正负，返回比较结果
-    public static String getCompareResult() {
-        if (compareCipherTextFromServer2.isEmpty() || compareCipherTextFromServer4.isEmpty()) {
-            return "尚未收到全部比较密文";
-        }
-        try {
-            java.math.BigInteger c2 = new java.math.BigInteger(compareCipherTextFromServer2);
-            java.math.BigInteger c4 = new java.math.BigInteger(compareCipherTextFromServer4);
-            // edgeServer2用默认Paillier，edgeServer4用NEW_PAILLIER
-            java.math.BigDecimal dec2 = org.centerServer.utils.Paillier.decrypt(c2);
-            java.math.BigDecimal dec4 = org.centerServer.utils.Paillier.NEW_PAILLIER.decryptInst(c4);
-            java.math.BigDecimal sum = dec2.add(dec4);
-            String result;
-            int cmp = sum.compareTo(java.math.BigDecimal.ZERO);
-            if (cmp > 0) {
-                result = "edgeServer2聚合值大于edgeServer4聚合值";
-            } else if (cmp < 0) {
-                result = "edgeServer2聚合值小于edgeServer4聚合值";
-            } else {
-                result = "二者相等";
-            }
-            return String.format("解密结果：\nedgeServer2: %s\nedgeServer4: %s\n求和: %s\n比较结论: %s", dec2.toPlainString(),
-                    dec4.toPlainString(), sum.toPlainString(), result);
-        } catch (Exception e) {
-            return "比较解密出错: " + e.getMessage();
-        }
     }
 
     // 新增：获取均值方法
@@ -152,7 +119,66 @@ public class CenterServerManager {
         }
     }
 
-    // 新增：获取方差结果
+    // 处理极值密文
+    public static void processExtremeCipherText(String serverType, String maxClientId, String maxCipherText,
+            String minClientId, String minCipherText) {
+        if (serverType.equals("edgeServer1")) {
+            maxClientId1 = maxClientId;
+            maxCipherText1 = maxCipherText;
+            minClientId1 = minClientId;
+            minCipherText1 = minCipherText;
+        } else if (serverType.equals("edgeServer3")) {
+            maxClientId3 = maxClientId;
+            maxCipherText3 = maxCipherText;
+            minClientId3 = minClientId;
+            minCipherText3 = minCipherText;
+        }
+        compared = false;
+    }
+
+    // 极值比较逻辑
+    private static void compareExtreme() {
+        if (compared)
+            return;
+        if (maxCipherText1 != null && maxCipherText3 != null) {
+            // max: server1用Paillier，server3用NEW_PAILLIER
+            BigDecimal max1 = Paillier
+                    .decrypt(new BigInteger(maxCipherText1));
+            BigDecimal max3 = Paillier.NEW_PAILLIER
+                    .decryptInst(new BigInteger(maxCipherText3));
+            BigDecimal diff = max1.subtract(max3); // r1(m1-m2)+r2+r3
+            if (diff.compareTo(BigDecimal.ZERO) > 0) {
+                extremeMaxId = maxClientId1;
+            } else {
+                extremeMaxId = maxClientId3;
+            }
+        }
+        if (minCipherText1 != null && minCipherText3 != null) {
+            // min: server1用Paillier，server3用NEW_PAILLIER
+            BigDecimal min1 = Paillier
+                    .decrypt(new BigInteger(minCipherText1));
+            BigDecimal min3 = Paillier.NEW_PAILLIER
+                    .decryptInst(new BigInteger(minCipherText3));
+            BigDecimal diff = min1.subtract(min3); // r1(m1-m2)+r2+r3
+            if (diff.compareTo(BigDecimal.ZERO) < 0) {
+                extremeMinId = minClientId1;
+            } else {
+                extremeMinId = minClientId3;
+            }
+        }
+        compared = true;
+    }
+
+    // 获取极值结果
+    public static String getExtremeResult() {
+        compareExtreme();
+        if (extremeMaxId == null || extremeMinId == null) {
+            return "尚未收到足够的极值密文";
+        }
+        return "最大值 clientId: " + extremeMaxId + ", 最小值 clientId: " + extremeMinId;
+    }
+
+    // 获取方差结果
     public static String getVarianceResult() {
         if (varianceDecryptedText.isEmpty() || decryptedText.isEmpty()) {
             return "尚未收到足够的密文或明文结果未生成";

@@ -4,9 +4,11 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.*;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import org.edgeServer3.utils.EdgeServer3Manager;
+import org.json.JSONObject;
 
 public class EdgeServer3Handler implements HttpHandler {
 
@@ -66,7 +68,39 @@ public class EdgeServer3Handler implements HttpHandler {
                 sendResponse(exchange, 405, "Method not allowed");
             }
             return;
-        } else {
+        } else if (path.equals("/get/extremeCipherText")) {
+            // 获取极值密文（包含maxId->密文, minId->密文）
+            Map<String, String> extremeMap = EdgeServer3Manager.getExtremeCipherText();
+            // 取出maxId和minId及其密文
+            Iterator<Map.Entry<String, String>> it = extremeMap.entrySet().iterator();
+            String maxId = null, maxCipherText = null, minId = null, minCipherText = null;
+            if (it.hasNext()) {
+                Map.Entry<String, String> entry = it.next();
+                maxId = entry.getKey();
+                maxCipherText = entry.getValue();
+            }
+            if (it.hasNext()) {
+                Map.Entry<String, String> entry = it.next();
+                minId = entry.getKey();
+                minCipherText = entry.getValue();
+            }
+            // 发送到centerServer
+            if (maxId != null && maxCipherText != null && minId != null && minCipherText != null) {
+                EdgeServer3Manager.sendExtremeCipherTextToCenterServer(maxId, maxCipherText, minId, minCipherText);
+                // 构建响应
+                JSONObject json = new JSONObject();
+                json.put("maxId", maxId);
+                json.put("maxCipherText", maxCipherText);
+                json.put("minId", minId);
+                json.put("minCipherText", minCipherText);
+                response = "ExtremeCipherText:" + json.toString();
+            } else {
+                response = "错误: 极值信息不完整";
+            }
+
+        }
+
+        else {
             sendResponse(exchange, 404, "Path not found");
             return;
         }

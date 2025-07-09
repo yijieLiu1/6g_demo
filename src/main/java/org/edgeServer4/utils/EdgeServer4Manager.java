@@ -210,45 +210,47 @@ public class EdgeServer4Manager {
         return lastImpaillierCipherText;
     }
 
-    // 新增：生成En(r1*m2)^-1*En(r3)密文并发送到centerServer
-    public static String generateAndSendCompareCipherText() {
-        try {
-            java.security.SecureRandom random = new java.security.SecureRandom();
-            java.math.BigDecimal m2 = decryptedText.isEmpty() ? java.math.BigDecimal.ZERO
-                    : new java.math.BigDecimal(decryptedText);
-            java.math.BigInteger r1 = new java.math.BigInteger(256, random);
-            java.math.BigInteger r3 = new java.math.BigInteger(128, random);
-            java.math.BigDecimal blinded = m2.multiply(new java.math.BigDecimal(r1));
-            java.math.BigInteger cipher = org.edgeServer4.utils.Paillier.encrypt(blinded);
-            java.math.BigInteger n2 = org.edgeServer4.utils.Paillier.getN2();
-            java.math.BigInteger cipherInv = cipher.modInverse(n2);
-            java.math.BigInteger cipherR3 = org.edgeServer4.utils.Paillier.encrypt(new java.math.BigDecimal(r3));
-            java.math.BigInteger finalCipher = cipherInv.multiply(cipherR3).mod(n2);
-            // 发送到centerServer
-            sendCompareCipherTextToCenterServer(finalCipher.toString());
-            return finalCipher.toString();
-        } catch (Exception e) {
-            return "Error generating compare cipher text: " + e.getMessage();
-        }
-    }
+    // // 生成En(r1*m2)^-1*En(r3)密文并发送到centerServer。废弃
+    // public static String generateAndSendCompareCipherText() {
+    // try {
+    // java.security.SecureRandom random = new java.security.SecureRandom();
+    // java.math.BigDecimal m2 = decryptedText.isEmpty() ? java.math.BigDecimal.ZERO
+    // : new java.math.BigDecimal(decryptedText);
+    // java.math.BigInteger r1 = new java.math.BigInteger(
+    // "106825203108678901282936524768508786416970440522324880302033274827400270090769");
+    // java.math.BigInteger r3 = new java.math.BigInteger(128, random);
+    // java.math.BigDecimal blinded = m2.multiply(new java.math.BigDecimal(r1))
+    // .subtract(new java.math.BigDecimal(r3));
+    // java.math.BigInteger cipher =
+    // org.edgeServer4.utils.Paillier.encrypt(blinded);
 
-    private static void sendCompareCipherTextToCenterServer(String cipherText) {
-        try {
-            java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()
-                    .uri(java.net.URI.create(CENTER_SERVER_URL + "/post/compareCipherText"))
-                    .header("Content-Type", "text/plain")
-                    .header("Server-Type", "server4")
-                    .POST(java.net.http.HttpRequest.BodyPublishers.ofString(cipherText))
-                    .build();
-            java.net.http.HttpResponse<String> response = httpClient.send(request,
-                    java.net.http.HttpResponse.BodyHandlers.ofString());
-            if (response.statusCode() != 200) {
-                System.err.println("Failed to send compare cipher text to center server: " + response.body());
-            }
-        } catch (Exception e) {
-            System.err.println("Error sending compare cipher text to center server: " + e.getMessage());
-        }
-    }
+    // // 发送到centerServer
+    // sendCompareCipherTextToCenterServer(cipher.toString());
+    // return cipher.toString();
+    // } catch (Exception e) {
+    // return "Error generating compare cipher text: " + e.getMessage();
+    // }
+    // }
+
+    // private static void sendCompareCipherTextToCenterServer(String cipherText) {
+    // try {
+    // java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()
+    // .uri(java.net.URI.create(CENTER_SERVER_URL + "/post/compareCipherText"))
+    // .header("Content-Type", "text/plain")
+    // .header("Server-Type", "server4")
+    // .POST(java.net.http.HttpRequest.BodyPublishers.ofString(cipherText))
+    // .build();
+    // java.net.http.HttpResponse<String> response = httpClient.send(request,
+    // java.net.http.HttpResponse.BodyHandlers.ofString());
+    // if (response.statusCode() != 200) {
+    // System.err.println("Failed to send compare cipher text to center server: " +
+    // response.body());
+    // }
+    // } catch (Exception e) {
+    // System.err.println("Error sending compare cipher text to center server: " +
+    // e.getMessage());
+    // }
+    // }
 
     public static String getMeanResult() {
         if (meanValue == null) {

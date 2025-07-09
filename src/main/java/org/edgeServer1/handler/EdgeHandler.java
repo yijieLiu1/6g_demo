@@ -4,9 +4,11 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.*;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import org.edgeServer1.utils.EdgeManager;
+import org.json.JSONObject;
 
 public class EdgeHandler implements HttpHandler {
 
@@ -22,14 +24,16 @@ public class EdgeHandler implements HttpHandler {
         }
         // 执行密文连乘，输出密文，并把聚合后的密文发送给edgeServer2
         else if (path.equals("/get/sumcipherText")) {
+            long startTime = System.currentTimeMillis();
             // 输出两个聚合密文
             String cipherText = EdgeManager.getAggregatedCipherText();
             String squareCipherText = EdgeManager.getAggregatedSquareCipherText();
             // String squareCipherText = "0"; // 目前没有平方密文
 
             EdgeManager.sendAggregatedCipherTextToEdgeServer2(cipherText, squareCipherText);
+            long endTime = System.currentTimeMillis();
             response = "sumcipherText:{\"cipherText\":\"" + cipherText + "\",\"squareCipherText\":\"" + squareCipherText
-                    + "\"}";
+                    + "\"}+" + " Time taken: " + (endTime - startTime) + "ms";
         }
         // 接收来自dataClient发送的密文,并注册client
         // cipherText密文，squareCipherText平方密文，interval区间
@@ -59,14 +63,46 @@ public class EdgeHandler implements HttpHandler {
             }
         }
         // 执行极值比较，需手动触发
+        else if (path.equals("/get/extremeCipherText")) {
+            // 获取极值密文（包含maxId->密文, minId->密文）
+            Map<String, String> extremeMap = EdgeManager.getExtremeCipherText();
+            // 取出maxId和minId及其密文
+            Iterator<Map.Entry<String, String>> it = extremeMap.entrySet().iterator();
+            String maxId = null, maxCipherText = null, minId = null, minCipherText = null;
+            if (it.hasNext()) {
+                Map.Entry<String, String> entry = it.next();
+                maxId = entry.getKey();
+                maxCipherText = entry.getValue();
+            }
+            if (it.hasNext()) {
+                Map.Entry<String, String> entry = it.next();
+                minId = entry.getKey();
+                minCipherText = entry.getValue();
+            }
+            // 发送到centerServer
+            if (maxId != null && maxCipherText != null && minId != null && minCipherText != null) {
+                EdgeManager.sendExtremeCipherTextToCenterServer(maxId, maxCipherText, minId, minCipherText);
+                // 构建响应
+                JSONObject json = new JSONObject();
+                json.put("maxId", maxId);
+                json.put("maxCipherText", maxCipherText);
+                json.put("minId", minId);
+                json.put("minCipherText", minCipherText);
+                response = "ExtremeCipherText:" + json.toString();
+            } else {
+                response = "错误: 极值信息不完整";
+            }
+
+        }
+
         else if (path.equals("/post/comparePair")) {
             System.out.println("开始执行/post/comparePair.....");
             if (exchange.getRequestMethod().equals("POST")) {
                 try {
                     // 只在最大区间找最大值，最小区间找最小值
-                    String result = org.edgeServer1.utils.EdgeManager.findExtremesByInterval();
+                    String result = EdgeManager.findExtremesByInterval();
                     // 该方法只是测试edgeServer2解密比较密文的性能。
-                    // String result = org.edgeServer1.utils.EdgeManager.findExtremes();
+                    // String result = EdgeManager.findExtremes();
                     sendResponse(exchange, 200, result);
                 } catch (Exception e) {
                     sendResponse(exchange, 500, "服务端异常: " + e.getMessage());

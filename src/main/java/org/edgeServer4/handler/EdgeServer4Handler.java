@@ -101,8 +101,6 @@ public class EdgeServer4Handler implements HttpHandler {
             response = EdgeServer4Manager.getImpaillierCipherText();
         } else if (path.equals("/get/impaillierVarianceCipherText")) {
             response = EdgeServer4Manager.getAndsendImpaillierVarianceCipherText();
-        } else if (path.equals("/get/compareCipherText")) {
-            response = org.edgeServer4.utils.EdgeServer4Manager.generateAndSendCompareCipherText();
         } else if (path.equals("/get/meanResult")) {
             response = EdgeServer4Manager.getMeanResult();
         } else if (path.equals("/get/varianceResult")) {

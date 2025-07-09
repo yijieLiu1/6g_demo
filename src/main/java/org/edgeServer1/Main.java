@@ -18,6 +18,9 @@ public class Main {
             server.createContext("/get/totalclientNum", edgeHandler);
             // 获取聚合密文并发送
             server.createContext("/get/sumcipherText", edgeHandler);
+            // 获取极值比较密文
+            server.createContext("/get/extremeCipherText", edgeHandler);
+
             // 为了接收来自client的密文
             server.createContext("/post/cipherText", edgeHandler);
             // 触发比较

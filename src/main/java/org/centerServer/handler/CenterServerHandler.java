@@ -27,16 +27,20 @@ public class CenterServerHandler implements HttpHandler {
 
         String path = exchange.getRequestURI().getPath();
         String response;
-
+        // 解密聚合值
         if (path.equals("/get/decryptedText")) {
             System.out.println("处理获取解密文本请求");
             response = CenterServerManager.getDecryptedText();
             System.out.println("响应内容: " + response);
-        } else if (path.equals("/get/meanResult")) {
+        }
+        // 获取均值
+        else if (path.equals("/get/meanResult")) {
             System.out.println("处理获取均值请求");
             response = CenterServerManager.getMeanResult();
             System.out.println("响应内容: " + response);
-        } else if (path.equals("/post/aggregatedCipherText")) {
+        }
+        // 处理聚合密文POST请求，聚合
+        else if (path.equals("/post/aggregatedCipherText")) {
             if (exchange.getRequestMethod().equals("POST")) {
                 System.out.println("处理聚合密文POST请求");
                 BufferedReader reader = new BufferedReader(new InputStreamReader(exchange.getRequestBody(), "UTF-8"));
@@ -63,20 +67,42 @@ public class CenterServerHandler implements HttpHandler {
                 sendResponse(exchange, 405, "Method not allowed");
                 return;
             }
-        } else if (path.equals("/get/compareResult")) {
-            response = org.centerServer.utils.CenterServerManager.getCompareResult();
-        } else if (path.equals("/post/compareCipherText")) {
+        }
+        // 获取极值结果
+        else if (path.equals("/get/extremeResult")) {
+            response = org.centerServer.utils.CenterServerManager.getExtremeResult();
+        }
+        // 处理极值比较的密文。
+        else if (path.equals("/post/extremeCipherText")) {
             if (exchange.getRequestMethod().equals("POST")) {
-                BufferedReader reader = new BufferedReader(new InputStreamReader(exchange.getRequestBody()));
-                String compareCipherText = reader.readLine();
-                String serverType = exchange.getRequestHeaders().getFirst("Server-Type");
-                org.centerServer.utils.CenterServerManager.processCompareCipherText(serverType, compareCipherText);
-                response = "Success";
+                BufferedReader reader = new BufferedReader(new InputStreamReader(exchange.getRequestBody(), "UTF-8"));
+                StringBuilder sb = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    sb.append(line);
+                }
+                String body = sb.toString();
+                try {
+                    org.json.JSONObject json = new org.json.JSONObject(body);
+                    String maxClientId = json.getString("maxClientId");
+                    String maxCipherText = json.getString("maxCipherText");
+                    String minClientId = json.getString("minClientId");
+                    String minCipherText = json.getString("minCipherText");
+                    String serverType = json.getString("serverId");
+                    org.centerServer.utils.CenterServerManager.processExtremeCipherText(serverType, maxClientId,
+                            maxCipherText, minClientId, minCipherText);
+                    response = "Success";
+                } catch (Exception e) {
+                    sendResponse(exchange, 400, "Invalid JSON or missing fields");
+                    return;
+                }
             } else {
                 sendResponse(exchange, 405, "Method not allowed");
                 return;
             }
-        } else if (path.equals("/post/varianceCipherText")) {
+        }
+        // 处理方差密文的POST请求，计算方差
+        else if (path.equals("/post/varianceCipherText")) {
             if (exchange.getRequestMethod().equals("POST")) {
                 BufferedReader reader = new BufferedReader(new InputStreamReader(exchange.getRequestBody(), "UTF-8"));
                 StringBuilder sb = new StringBuilder();
@@ -101,7 +127,9 @@ public class CenterServerHandler implements HttpHandler {
                 sendResponse(exchange, 405, "Method not allowed");
                 return;
             }
-        } else if (path.equals("/get/varianceResult")) {
+        }
+        // 获取方差结果
+        else if (path.equals("/get/varianceResult")) {
             response = org.centerServer.utils.CenterServerManager.getVarianceResult();
         } else {
             System.out.println("未找到路径: " + path);

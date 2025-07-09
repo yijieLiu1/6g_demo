@@ -90,16 +90,21 @@ public class ImprovePaillier {
     }
 
     public static void main(String[] args) {
+
+        java.math.BigInteger r1 = new java.math.BigInteger(256, random);
+        System.out.println(r1);
         // 测试加密和解密
         // 加密
-        BigInteger c1 = ImprovePaillier.encrypt(BigInteger.valueOf(2724346), 0); // DO1
-        BigInteger c2 = ImprovePaillier.encrypt(BigInteger.valueOf(2724346), 1); // DO2
+        // BigInteger c1 = ImprovePaillier.encrypt(BigInteger.valueOf(2724346), 0); //
+        // DO1
+        // BigInteger c2 = ImprovePaillier.encrypt(BigInteger.valueOf(2724346), 1); //
+        // DO2
 
-        // 聚合
-        BigInteger agg = ImprovePaillier.aggregate(new BigInteger[] { c1, c2 });
+        // // 聚合
+        // BigInteger agg = ImprovePaillier.aggregate(new BigInteger[] { c1, c2 });
 
-        // 解密
-        BigInteger result = ImprovePaillier.decrypt(agg);
-        System.out.println("解密结果: " + result);
+        // // 解密
+        // BigInteger result = ImprovePaillier.decrypt(agg);
+        // System.out.println("解密结果: " + result);
     }
 }
