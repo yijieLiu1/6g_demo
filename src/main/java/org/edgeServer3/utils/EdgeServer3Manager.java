@@ -161,9 +161,12 @@ public class EdgeServer3Manager {
         BigInteger r1 = new BigInteger(
                 "106825203108678901282936524768508786416970440522324880302033274827400270090769");
         BigInteger r3 = new BigInteger(128, random);
-        BigInteger blinded = m2.multiply(r1).subtract(r3);
-        BigInteger cipher = Paillier.encrypt(blinded);
-        return cipher.toString();
+        // En(r1*m2)
+        BigInteger blinded = m2.modPow(r1, Paillier.getN2());
+        // En(r1*m2-r3)
+        blinded = blinded.multiply(Paillier.encrypt(r3.negate())).mod(Paillier.getN2());
+
+        return blinded.toString();
 
     }
 

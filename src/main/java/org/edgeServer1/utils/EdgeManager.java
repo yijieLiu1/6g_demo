@@ -166,9 +166,12 @@ public class EdgeManager {
         BigInteger r1 = new BigInteger(
                 "106825203108678901282936524768508786416970440522324880302033274827400270090769");
         BigInteger r2 = new BigInteger(128, random);
-        BigInteger blinded = m1.multiply(r1).add(r2);
-        BigInteger cipher = Paillier.encrypt(blinded);
-        return cipher.toString();
+        // En(r1*m1)
+        BigInteger blinded = m1.modPow(r1, Paillier.getN2());
+        // En(r1*m1+r2)
+        blinded = blinded.multiply(Paillier.encrypt(r2)).mod(Paillier.getN2());
+
+        return blinded.toString();
 
     }
 
