@@ -142,11 +142,16 @@ public class CenterServerManager {
             return;
         if (maxCipherText1 != null && maxCipherText3 != null) {
             // max: server1用Paillier，server3用NEW_PAILLIER
+            System.out.println("maxCipherText1: " + maxCipherText1);
+            System.out.println("maxCipherText3: " + maxCipherText3);
             BigDecimal max1 = Paillier
                     .decrypt(new BigInteger(maxCipherText1));
+            System.out.println("max1: " + max1.toPlainString());
             BigDecimal max3 = Paillier.NEW_PAILLIER
                     .decryptInst(new BigInteger(maxCipherText3));
+            System.out.println("max3: " + max3.toPlainString());
             BigDecimal diff = max1.subtract(max3); // r1(m1-m2)+r2+r3
+            System.out.println("max1 - max3: " + diff.toPlainString());
             if (diff.compareTo(BigDecimal.ZERO) > 0) {
                 extremeMaxId = maxClientId1;
             } else {
@@ -154,6 +159,8 @@ public class CenterServerManager {
             }
         }
         if (minCipherText1 != null && minCipherText3 != null) {
+            System.out.println("minCipherText1: " + minCipherText1);
+            System.out.println("minCipherText3: " + minCipherText3);
             // min: server1用Paillier，server3用NEW_PAILLIER
             BigDecimal min1 = Paillier
                     .decrypt(new BigInteger(minCipherText1));

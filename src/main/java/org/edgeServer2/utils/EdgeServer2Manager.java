@@ -10,7 +10,7 @@ import java.net.URI;
 import org.json.JSONObject;
 
 public class EdgeServer2Manager {
-    private static String receivedCipherText = "";
+
     private static String decryptedText = "";
     private static final String CENTER_SERVER_URL = "http://localhost:33333";
     private static final HttpClient httpClient = HttpClient.newHttpClient();
@@ -22,7 +22,7 @@ public class EdgeServer2Manager {
     private static BigDecimal meanValue = null;
     private static BigDecimal ex2Value = null;
     private static BigDecimal varianceValue = null;
-    private static int lastClientCount = 0;
+
     // 新增：保存sumX2
     private static BigDecimal sumX2 = null;
 
@@ -31,7 +31,6 @@ public class EdgeServer2Manager {
 
     // 在求极值时的调试信息（可选）
     private static int compareCount = 0;
-    private static long compareStartTime = 0;
 
     // 新增：只保存密文和clientCount
     private static String savedCipherText = null;
@@ -44,9 +43,8 @@ public class EdgeServer2Manager {
         savedClientCount = clientCount;
     }
 
-    public static void processAggregatedCipherText(String cipherText, int clientCount) {
-        System.out.println("edgeServer2开始解密......密文" + cipherText);
-        receivedCipherText = cipherText;
+    public static void processAggregatedCipherText(String cipherText) {
+        System.out.println("edgeServer2开始解密聚合密文......\n密文：" + cipherText);
         if (!cipherText.isEmpty()) {
             try {
                 BigInteger c = new BigInteger(cipherText);
@@ -81,11 +79,9 @@ public class EdgeServer2Manager {
             sumX2 = Paillier.decrypt(c);
             System.out.println("edgeServer2解密平方密文结束......sum^2结果 " + sumX2);
             ex2Value = sumX2.divide(new BigDecimal(clientCount), 8, RoundingMode.HALF_UP);
-            System.out.println("Ex2 Value: " + ex2Value);
 
             if (meanValue != null && ex2Value != null) {
                 BigDecimal meanValueSquared = meanValue.pow(2);
-                System.out.println("Mean Value Squared: " + meanValueSquared);
                 varianceValue = ex2Value.subtract(meanValueSquared);
                 System.out.println("edgeServer2计算E(x^2)-E(x)^2;E(x^2): " + ex2Value + ", E(x)^2: " + meanValueSquared);
                 System.out.println("edgeServer2方差计算结束......方差结果" + varianceValue);
@@ -180,7 +176,7 @@ public class EdgeServer2Manager {
         BigInteger encryptedValue = ImprovePaillier.encrypt(valueToEncrypt, 0);
         // // 只保存，不自动上传
         lastImpaillierCipherText = encryptedValue.toString();
-        sendEncryptedValueToCenterServer(lastImpaillierCipherText, lastClientCount);
+        sendEncryptedValueToCenterServer(lastImpaillierCipherText, savedClientCount);
         return lastImpaillierCipherText;
     }
 
@@ -190,7 +186,7 @@ public class EdgeServer2Manager {
             return "No cipher text saved.";
         }
 
-        processAggregatedCipherText(savedCipherText, savedClientCount); // 每次都解密
+        processAggregatedCipherText(savedCipherText); // 每次都解密
 
         return "聚合值结果：" + decryptedText;
     }
@@ -200,7 +196,7 @@ public class EdgeServer2Manager {
         if (savedCipherText == null || savedCipherText.isEmpty()) {
             return "No cipher text saved.";
         }
-        processAggregatedCipherText(savedCipherText, savedClientCount); // 每次都解密
+        processAggregatedCipherText(savedCipherText); // 每次都解密
         processMeanData(savedClientCount);
         if (meanValue == null) {
             return "Mean Result: 未计算或clientCount为0\n";
@@ -214,7 +210,7 @@ public class EdgeServer2Manager {
                 || savedSquareCipherText.isEmpty()) {
             return "No cipher text or square cipher text saved.";
         }
-        processAggregatedCipherText(savedCipherText, savedClientCount); // 解密
+        processAggregatedCipherText(savedCipherText); // 解密
 
         processMeanData(savedClientCount);// 求均值
 
@@ -227,9 +223,7 @@ public class EdgeServer2Manager {
 
     public static String compareAndGetBigger(String clientId1, String clientId2, String cmpCipher) {
         try {
-            if (compareCount == 0) {
-                compareStartTime = System.currentTimeMillis();
-            }
+
             compareCount++;
             System.out.println("[compare] 第 " + compareCount + " 次解密: " + clientId1 + " vs " + clientId2);
             BigInteger c = new BigInteger(cmpCipher);
@@ -248,10 +242,10 @@ public class EdgeServer2Manager {
     public static void saveCompareResult(String max, String min) {
         maxId = max;
         minId = min;
-        long cost = System.currentTimeMillis() - compareStartTime;
-        System.out.println("[compare] 总共解密 " + compareCount + " 次，总耗时 " + cost + " ms");
+
+        System.out.println("[compare] 总共解密 " + compareCount + " 次");
         compareCount = 0;
-        compareStartTime = 0;
+
     }
 
     // getCompareResult返回最大最小id
@@ -272,7 +266,7 @@ public class EdgeServer2Manager {
         try {
             JSONObject json = new JSONObject();
             json.put("encryptedValue", encryptedValue.toString());
-            json.put("clientCount", lastClientCount);
+            json.put("clientCount", savedClientCount);
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(CENTER_SERVER_URL + "/post/varianceCipherText"))
                     .header("Content-Type", "application/json")

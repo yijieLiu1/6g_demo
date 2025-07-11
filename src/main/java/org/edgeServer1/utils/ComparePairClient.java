@@ -33,6 +33,8 @@ public class ComparePairClient {
 
     // 通知edgeServer2保存最终极值
     public static void notifyEdgeServer2FinalResult(String maxId, String minId, long computeTime) {
+        System.out.println("edgeServer1通知edgeServer2保存最终极值: maxId=" + maxId + ", minId=" + minId
+                + ", computeTime=" + computeTime);
         try {
             JSONObject json = new JSONObject();
             json.put("maxId", maxId);

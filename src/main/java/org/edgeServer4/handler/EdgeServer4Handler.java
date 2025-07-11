@@ -15,10 +15,14 @@ public class EdgeServer4Handler implements HttpHandler {
         String response;
 
         if (path.equals("/get/decryptedText")) {
-            response = EdgeServer4Manager.getDecryptedText();
+            System.out.println("\n\nedgeServer4收到/get/decryptedText请求，开始解密聚合值......");
+            long startTime = System.currentTimeMillis();
+            response = EdgeServer4Manager.decryptAndGetDecryptedText();
+            long endTime = System.currentTimeMillis();
+            System.out.println("\nedgeServer4解密聚合值结束......共耗时" + (endTime - startTime) + "ms");
 
         }
-        // 获取到来自edgeServer3的密文，然后进行聚合。
+        // 获取到来自edgeServer3的密文，只把密文保存下来。方便后续分开计算，
         else if (path.equals("/post/aggregatedCipherText")) {
             if (exchange.getRequestMethod().equals("POST")) {
                 BufferedReader reader = new BufferedReader(new InputStreamReader(exchange.getRequestBody(), "UTF-8"));
@@ -33,9 +37,8 @@ public class EdgeServer4Handler implements HttpHandler {
                     String aggregatedCipherText = json.getString("cipherText");
                     String squareCipherText = json.getString("squareCipherText");
                     int clientCount = json.getInt("clientCount");
-                    EdgeServer4Manager.processAggregatedCipherText(aggregatedCipherText, clientCount);
-                    EdgeServer4Manager.processMeanData(clientCount);
-                    EdgeServer4Manager.processVarianceData(squareCipherText, clientCount);
+                    // 只保存，不做解密和计算
+                    EdgeServer4Manager.saveAggregatedCipherText(aggregatedCipherText, squareCipherText, clientCount);
                     response = "Success";
                 } catch (Exception e) {
                     sendResponse(exchange, 400, "Invalid JSON or missing fields");
@@ -48,6 +51,7 @@ public class EdgeServer4Handler implements HttpHandler {
         } else if (path.equals("/get/compareResult")) {
             response = EdgeServer4Manager.getCompareResult();
         } else if (path.equals("/post/comparisonData")) {
+            System.out.println("\n\nedgeServer4收到/post/comparisonData请求，开始处理比较数据......");
             if (exchange.getRequestMethod().equalsIgnoreCase("POST")) {
                 String clientId1 = exchange.getRequestHeaders().getFirst("Client-ID1");
                 String clientId2 = exchange.getRequestHeaders().getFirst("Client-ID2");
@@ -87,7 +91,9 @@ public class EdgeServer4Handler implements HttpHandler {
                     org.json.JSONObject json = new org.json.JSONObject(body);
                     String maxId = json.getString("maxId");
                     String minId = json.getString("minId");
-                    System.out.println("[finalCompareResult] 保存极值: maxId=" + maxId + ", minId=" + minId);
+                    String computeTime = String.valueOf(json.get("computeTime"));
+                    System.out.println("[finalCompareResult] 保存极值: 最大值Id=" + maxId + ", 最小值Id=" + minId +
+                            ", 计算时间=" + computeTime + "ms");
                     org.edgeServer4.utils.EdgeServer4Manager.saveCompareResult(maxId, minId);
                     sendResponse(exchange, 200, "Final result saved");
                 } catch (Exception e) {
@@ -102,9 +108,17 @@ public class EdgeServer4Handler implements HttpHandler {
         } else if (path.equals("/get/impaillierVarianceCipherText")) {
             response = EdgeServer4Manager.getAndsendImpaillierVarianceCipherText();
         } else if (path.equals("/get/meanResult")) {
-            response = EdgeServer4Manager.getMeanResult();
+            System.out.println("\n\nedgeServer4收到/get/meanResult请求，开始计算平均值......");
+            long startTime = System.currentTimeMillis();
+            response = EdgeServer4Manager.processAndGetMeanResult();
+            long endTime = System.currentTimeMillis();
+            System.out.println("\nedgeServer4计算平均值结束......共耗时" + (endTime - startTime) + "ms");
         } else if (path.equals("/get/varianceResult")) {
-            response = EdgeServer4Manager.getVarianceResult();
+            System.out.println("\n\nedgeServer4收到/get/varianceResult请求，开始计算方差结果......");
+            long startTime = System.currentTimeMillis();
+            response = EdgeServer4Manager.processAndGetVarianceResult();
+            long endTime = System.currentTimeMillis();
+            System.out.println("\nedgeServer4计算方差结果结束......共耗时" + (endTime - startTime) + "ms");
         } else {
             sendResponse(exchange, 404, "Path not found");
             return;

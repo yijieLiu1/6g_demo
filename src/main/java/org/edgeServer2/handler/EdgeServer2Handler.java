@@ -121,15 +121,16 @@ public class EdgeServer2Handler implements HttpHandler {
                     org.json.JSONObject json = new org.json.JSONObject(body);
                     String maxId = json.getString("maxId");
                     String minId = json.getString("minId");
-                    String computeTime = json.getString("computeTime");
+                    String computeTime = String.valueOf(json.get("computeTime"));
                     System.out.println("[finalCompareResult] 保存极值: 最大值Id=" + maxId + ", 最小值Id=" + minId
-                            + " 共计用时=" + computeTime);
+                            + ", 共计用时=" + computeTime + "ms");
                     org.edgeServer2.utils.EdgeServer2Manager.saveCompareResult(maxId, minId);
                     sendResponse(exchange, 200, "Final result saved");
                 } catch (Exception e) {
                     sendResponse(exchange, 400, "Invalid JSON or missing fields");
                 }
             } else {
+                System.out.println("非法的HTTP方法: " + exchange.getRequestMethod());
                 sendResponse(exchange, 405, "Method not allowed");
             }
             return;

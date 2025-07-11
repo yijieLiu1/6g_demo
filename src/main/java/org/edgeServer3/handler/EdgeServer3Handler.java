@@ -21,9 +21,17 @@ public class EdgeServer3Handler implements HttpHandler {
         if (path.equals("/get/totalclientNum")) {
             response = "totalclientNum:" + String.valueOf(EdgeServer3Manager.getClientCount());
         } else if (path.equals("/get/sumcipherText")) {
+            System.out.println("\n\nedgeServer3收到/get/sumcipherText请求，开始聚合密文......");
+            long startTime = System.currentTimeMillis();
             // 输出两个聚合密文
             String cipherText = EdgeServer3Manager.getAggregatedCipherText();
+            long endTime = System.currentTimeMillis();
+            System.out.println("\nedgeServer3聚合普通密文结束......共耗时" + (endTime - startTime) + "ms");
+            System.out.println("\n\nedgeServer3收到/get/sumcipherText请求，开始聚合平方密文......");
+            long startTime2 = System.currentTimeMillis();
             String squareCipherText = EdgeServer3Manager.getAggregatedSquareCipherText();
+            long endTime2 = System.currentTimeMillis();
+            System.out.println("\nedgeServer3聚合平方密文结束......共耗时" + (endTime2 - startTime2) + "ms");
             EdgeServer3Manager.sendAggregatedCipherTextToEdgeServer4(cipherText, squareCipherText);
             response = "sumcipherText:{\"cipherText\":\"" + cipherText + "\",\"squareCipherText\":\"" + squareCipherText
                     + "\"}";
@@ -38,7 +46,7 @@ public class EdgeServer3Handler implements HttpHandler {
                 }
                 String body = sb.toString();
                 try {
-                    org.json.JSONObject json = new org.json.JSONObject(body);
+                    JSONObject json = new JSONObject(body);
                     String cipherText = json.getString("cipherText");
                     String squareCipherText = json.getString("squareCipherText");
                     String interval = json.optString("interval", "");
@@ -57,7 +65,7 @@ public class EdgeServer3Handler implements HttpHandler {
             if (exchange.getRequestMethod().equals("POST")) {
                 try {
                     // 只在最大区间找最大值，最小区间找最小值
-                    String result = org.edgeServer3.utils.EdgeServer3Manager.findExtremesByInterval();
+                    String result = EdgeServer3Manager.findExtremesByInterval();
                     // 该方法只是测试edgeServer2解密比较密文的性能。
                     // String result = org.edgeServer1.utils.EdgeManager.findExtremes();
                     sendResponse(exchange, 200, result);
@@ -69,30 +77,21 @@ public class EdgeServer3Handler implements HttpHandler {
             }
             return;
         } else if (path.equals("/get/extremeCipherText")) {
-            // 获取极值密文（包含maxId->密文, minId->密文）
-            Map<String, String> extremeMap = EdgeServer3Manager.getExtremeCipherText();
-            // 取出maxId和minId及其密文
-            Iterator<Map.Entry<String, String>> it = extremeMap.entrySet().iterator();
-            String maxId = null, maxCipherText = null, minId = null, minCipherText = null;
-            if (it.hasNext()) {
-                Map.Entry<String, String> entry = it.next();
-                maxId = entry.getKey();
-                maxCipherText = entry.getValue();
-            }
-            if (it.hasNext()) {
-                Map.Entry<String, String> entry = it.next();
-                minId = entry.getKey();
-                minCipherText = entry.getValue();
-            }
+            String maxId = EdgeServer3Manager.getLastMaxClientId();
+            String minId = EdgeServer3Manager.getLastMinClientId();
+            String maxCipherText = EdgeServer3Manager.generateExtremeCipherTextforCenterServer(maxId);
+            String minCipherText = EdgeServer3Manager.generateExtremeCipherTextforCenterServer(minId);
+            System.out.println("maxId: " + maxId + ", maxCipherText: " + maxCipherText);
+            System.out.println("minId: " + minId + ", minCipherText: " + minCipherText);
             // 发送到centerServer
             if (maxId != null && maxCipherText != null && minId != null && minCipherText != null) {
                 EdgeServer3Manager.sendExtremeCipherTextToCenterServer(maxId, maxCipherText, minId, minCipherText);
-                // 构建响应
-                JSONObject json = new JSONObject();
-                json.put("maxId", maxId);
-                json.put("maxCipherText", maxCipherText);
-                json.put("minId", minId);
-                json.put("minCipherText", minCipherText);
+                Map<String, Object> ordered = new LinkedHashMap<>();
+                ordered.put("maxId", maxId);
+                ordered.put("maxCipherText", maxCipherText);
+                ordered.put("minId", minId);
+                ordered.put("minCipherText", minCipherText);
+                JSONObject json = new JSONObject(ordered);
                 response = "ExtremeCipherText:" + json.toString();
             } else {
                 response = "错误: 极值信息不完整";

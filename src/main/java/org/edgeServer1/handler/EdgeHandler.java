@@ -69,29 +69,22 @@ public class EdgeHandler implements HttpHandler {
         // 执行极值比较，需手动触发
         else if (path.equals("/get/extremeCipherText")) {
             // 获取极值密文（包含maxId->密文, minId->密文）
-            Map<String, String> extremeMap = EdgeManager.getExtremeCipherText();
-            // 取出maxId和minId及其密文
-            Iterator<Map.Entry<String, String>> it = extremeMap.entrySet().iterator();
-            String maxId = null, maxCipherText = null, minId = null, minCipherText = null;
-            if (it.hasNext()) {
-                Map.Entry<String, String> entry = it.next();
-                maxId = entry.getKey();
-                maxCipherText = entry.getValue();
-            }
-            if (it.hasNext()) {
-                Map.Entry<String, String> entry = it.next();
-                minId = entry.getKey();
-                minCipherText = entry.getValue();
-            }
+            String maxId = EdgeManager.getLastMaxClientId();
+            String minId = EdgeManager.getLastMinClientId();
+            String maxCipherText = EdgeManager.generateExtremeCipherTextforCenterServer(maxId);
+            String minCipherText = EdgeManager.generateExtremeCipherTextforCenterServer(minId);
+            System.out.println("maxId: " + maxId + ", maxCipherText: " + maxCipherText);
+            System.out.println("minId: " + minId + ", minCipherText: " + minCipherText);
             // 发送到centerServer
             if (maxId != null && maxCipherText != null && minId != null && minCipherText != null) {
                 EdgeManager.sendExtremeCipherTextToCenterServer(maxId, maxCipherText, minId, minCipherText);
                 // 构建响应
-                JSONObject json = new JSONObject();
-                json.put("maxId", maxId);
-                json.put("maxCipherText", maxCipherText);
-                json.put("minId", minId);
-                json.put("minCipherText", minCipherText);
+                Map<String, Object> ordered = new LinkedHashMap<>();
+                ordered.put("maxId", maxId);
+                ordered.put("maxCipherText", maxCipherText);
+                ordered.put("minId", minId);
+                ordered.put("minCipherText", minCipherText);
+                JSONObject json = new JSONObject(ordered);
                 response = "ExtremeCipherText:" + json.toString();
             } else {
                 response = "错误: 极值信息不完整";

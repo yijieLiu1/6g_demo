@@ -32,11 +32,12 @@ public class ComparePairClient {
     }
 
     // 通知edgeServer2保存最终极值
-    public static void notifyEdgeServer4FinalResult(String maxId, String minId) {
+    public static void notifyEdgeServer4FinalResult(String maxId, String minId, long computeTime) {
         try {
             JSONObject json = new JSONObject();
             json.put("maxId", maxId);
             json.put("minId", minId);
+            json.put("computeTime", computeTime);
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(EDGE_SERVER4_URL + "/post/finalCompareResult"))
                     .header("Content-Type", "application/json")

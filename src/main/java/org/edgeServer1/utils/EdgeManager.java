@@ -1,7 +1,6 @@
 package org.edgeServer1.utils;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.math.BigInteger;
 import java.net.http.HttpClient;
@@ -173,26 +172,6 @@ public class EdgeManager {
 
     }
 
-    // 获取经过比较后的极值大值的比较密文和极小值的比较密文
-    public static Map<String, String> getExtremeCipherText() {
-        Map<String, String> result = new HashMap<>();
-        if (lastMaxClientId == null || lastMinClientId == null) {
-            result.put("error", "No extremes found yet.");
-            return result;
-        }
-        // 生成极值的比较密文。En(r1*m1+r2)
-        String maxCipherText = generateExtremeCipherTextforCenterServer(lastMaxClientId);
-        String minCipherText = generateExtremeCipherTextforCenterServer(lastMinClientId);
-
-        if (maxCipherText == null || minCipherText == null) {
-            result.put("error", "Extreme client cipher texts not found.");
-            return result;
-        }
-        result.put(lastMaxClientId, maxCipherText);
-        result.put(lastMinClientId, minCipherText);
-        return result;
-    }
-
     public static String getAggregatedCipherText() {
         updateAggregatedCipherText();
         return aggregatedCipherText;
@@ -243,27 +222,27 @@ public class EdgeManager {
     // 提前划分好区间。相比于之前的方案，省去了找最大client的候选区和最小client候选区的代码。
     // 直接在最大区间内找最大值，在最小区间内找最小值。数据量通常更小
     public static String findExtremesByInterval() {
-        System.out.println("\n\nedgeServer1收到/post/comparePair请求，开始处理比较数据......");
+        System.out.println("\n\nedgeServer1收到/post/comparePair请求，开始处理极值比较数据......");
         long startTime = System.currentTimeMillis();
-        java.util.List<String> clientIds = getAllClientIds();
+        List<String> clientIds = getAllClientIds();
         if (clientIds.size() < 2) {
             return "Not enough clients to compare";
         }
         // 一次遍历分组所有client
-        java.util.Map<String, java.util.List<String>> intervalToClients = new java.util.HashMap<>();
+        Map<String, List<String>> intervalToClients = new HashMap<>();
         for (String clientId : clientIds) {
             String interval = clientIntervals.getOrDefault(clientId, "");
-            intervalToClients.computeIfAbsent(interval, k -> new java.util.ArrayList<>()).add(clientId);
+            intervalToClients.computeIfAbsent(interval, k -> new ArrayList<>()).add(clientId);
         }
         if (intervalToClients.isEmpty()) {
             return "No interval data";
         }
         // 直接找最小和最大区间标签
-        java.util.Set<String> intervalSet = intervalToClients.keySet();
-        String minInterval = java.util.Collections.min(intervalSet);
-        String maxInterval = java.util.Collections.max(intervalSet);
-        java.util.List<String> minClients = intervalToClients.get(minInterval);
-        java.util.List<String> maxClients = intervalToClients.get(maxInterval);
+        Set<String> intervalSet = intervalToClients.keySet();
+        String minInterval = Collections.min(intervalSet);
+        String maxInterval = Collections.max(intervalSet);
+        List<String> minClients = intervalToClients.get(minInterval);
+        List<String> maxClients = intervalToClients.get(maxInterval);
         if (minClients == null || minClients.isEmpty() || maxClients == null || maxClients.isEmpty()) {
             return "No clients in min or max interval";
         }
@@ -278,7 +257,7 @@ public class EdgeManager {
                 compareResult = org.edgeServer1.utils.ComparePairClient.sendComparisonDataToEdgeServer2(maxId,
                         challenger, cmpCipher);
             }
-            org.json.JSONObject resultJson = new org.json.JSONObject(compareResult);
+            JSONObject resultJson = new JSONObject(compareResult);
             String bigger = resultJson.getString("bigger");
             maxId = bigger;
         }
@@ -293,13 +272,13 @@ public class EdgeManager {
                 compareResult = org.edgeServer1.utils.ComparePairClient.sendComparisonDataToEdgeServer2(minId,
                         challenger, cmpCipher);
             }
-            org.json.JSONObject resultJson = new org.json.JSONObject(compareResult);
+            JSONObject resultJson = new JSONObject(compareResult);
             String smaller = resultJson.getString("smaller");
             minId = smaller;
         }
         long endTime = System.currentTimeMillis();
-        System.out.println("[EdgeManager] 极值比较完成: maxId=" + maxId + ", minId=" + minId);
-        System.out.println("\nedgeServer1处理比较数据结束......共耗时" + (endTime - startTime) + "ms");
+        System.out.println("\nedgeServer1处理比较数据结束" + "maxId" + maxId + "minId" + minId + "......共耗时"
+                + (endTime - startTime) + "ms");
         // 通知edgeServer2保存极值
         org.edgeServer1.utils.ComparePairClient.notifyEdgeServer2FinalResult(maxId, minId, endTime - startTime);
         // 本地保存极值
