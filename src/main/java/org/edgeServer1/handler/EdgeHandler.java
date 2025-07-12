@@ -100,8 +100,12 @@ public class EdgeHandler implements HttpHandler {
                     String result = EdgeManager.findExtremesByInterval();
                     // 该方法只是测试edgeServer2解密比较密文的性能。
                     // String result = EdgeManager.findExtremes();
-
-                    sendResponse(exchange, 200, result);
+                    System.out.println("Post comparePair result: " + result);
+                    // 确保正确返回200状态码
+                    exchange.sendResponseHeaders(200, result.getBytes("UTF-8").length);
+                    try (OutputStream os = exchange.getResponseBody()) {
+                        os.write(result.getBytes("UTF-8"));
+                    }
                 } catch (Exception e) {
                     sendResponse(exchange, 500, "服务端异常: " + e.getMessage());
                 }

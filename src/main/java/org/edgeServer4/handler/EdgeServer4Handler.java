@@ -94,7 +94,7 @@ public class EdgeServer4Handler implements HttpHandler {
                     String computeTime = String.valueOf(json.get("computeTime"));
                     System.out.println("[finalCompareResult] 保存极值: 最大值Id=" + maxId + ", 最小值Id=" + minId +
                             ", 计算时间=" + computeTime + "ms");
-                    org.edgeServer4.utils.EdgeServer4Manager.saveCompareResult(maxId, minId);
+                    org.edgeServer4.utils.EdgeServer4Manager.saveCompareResult(maxId, minId, computeTime);
                     sendResponse(exchange, 200, "Final result saved");
                 } catch (Exception e) {
                     sendResponse(exchange, 400, "Invalid JSON or missing fields");

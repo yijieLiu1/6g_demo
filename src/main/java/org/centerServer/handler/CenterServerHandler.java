@@ -29,15 +29,20 @@ public class CenterServerHandler implements HttpHandler {
         String response;
         // 解密聚合值
         if (path.equals("/get/decryptedText")) {
-            System.out.println("处理获取解密文本请求");
+            System.out.println("\n\ncenterServer收到/get/decryptedText请求，开始解密聚合值......");
+            long startTime = System.currentTimeMillis();
             response = CenterServerManager.getDecryptedText();
-            System.out.println("响应内容: " + response);
+            long endTime = System.currentTimeMillis();
+            System.out.println("\ncenterServer解密聚合值结束......共耗时" + (endTime - startTime) + "ms");
         }
         // 获取均值
         else if (path.equals("/get/meanResult")) {
-            System.out.println("处理获取均值请求");
+            System.out.println("\n\nCenterServer收到/get/meanResult请求，开始获取均值结果......");
+            long startTime = System.currentTimeMillis();
             response = CenterServerManager.getMeanResult();
-            System.out.println("响应内容: " + response);
+            long endTime = System.currentTimeMillis();
+            System.out.println("\nCenterServer获取均值结果结束......共耗时" + (endTime - startTime) + "ms");
+
         }
         // 处理聚合密文POST请求，聚合
         else if (path.equals("/post/aggregatedCipherText")) {
@@ -70,7 +75,11 @@ public class CenterServerHandler implements HttpHandler {
         }
         // 获取极值结果
         else if (path.equals("/get/extremeResult")) {
-            response = org.centerServer.utils.CenterServerManager.getExtremeResult();
+            System.out.println("\n\nCenterServer收到/get/extremeResult请求，开始获取极值结果......");
+            long startTime = System.currentTimeMillis();
+            response = CenterServerManager.getExtremeResult();
+            long endTime = System.currentTimeMillis();
+            System.out.println("\nCenterServer获取极值结果结束......共耗时" + (endTime - startTime) + "ms");
         }
         // 处理极值比较的密文。
         else if (path.equals("/post/extremeCipherText")) {
@@ -112,11 +121,11 @@ public class CenterServerHandler implements HttpHandler {
                 }
                 String body = sb.toString();
                 try {
-                    org.json.JSONObject json = new org.json.JSONObject(body);
+                    JSONObject json = new JSONObject(body);
                     String encryptedValue = json.getString("encryptedValue");
                     int clientCount = json.getInt("clientCount");
                     String serverType = exchange.getRequestHeaders().getFirst("Server-Type");
-                    org.centerServer.utils.CenterServerManager.processVarianceCipherText(serverType, encryptedValue,
+                    CenterServerManager.processVarianceCipherText(serverType, encryptedValue,
                             clientCount);
                     response = "Success";
                 } catch (Exception e) {
@@ -130,7 +139,12 @@ public class CenterServerHandler implements HttpHandler {
         }
         // 获取方差结果
         else if (path.equals("/get/varianceResult")) {
-            response = org.centerServer.utils.CenterServerManager.getVarianceResult();
+            System.out.println("\n\nCenterServer收到/get/varianceResult请求，开始获取方差结果......");
+            long startTime = System.currentTimeMillis();
+            response = CenterServerManager.getVarianceResult();
+            long endTime = System.currentTimeMillis();
+            System.out.println("\nCenterServer获取方差结果结束......共耗时" + (endTime - startTime) + "ms");
+
         } else {
             System.out.println("未找到路径: " + path);
             sendResponse(exchange, 404, "Path not found");

@@ -280,10 +280,18 @@ public class EdgeManager {
             minId = smaller;
         }
         long endTime = System.currentTimeMillis();
+        long computeTime = endTime - startTime;
         System.out.println("\nedgeServer1处理比较数据结束" + "maxId" + maxId + "minId" + minId + "......共耗时"
-                + (endTime - startTime) + "ms");
+                + computeTime + "ms");
+
         // 通知edgeServer2保存极值
-        org.edgeServer1.utils.ComparePairClient.notifyEdgeServer2FinalResult(maxId, minId, endTime - startTime);
+        try {
+            ComparePairClient.notifyEdgeServer2FinalResult(maxId, minId, computeTime);
+        } catch (Exception e) {
+            System.err.println("通知edgeServer2保存极值失败: " + e.getMessage());
+            // 即使通知失败，也继续执行，因为计算已经完成
+        }
+
         // 本地保存极值
         lastMaxClientId = maxId;
         lastMinClientId = minId;

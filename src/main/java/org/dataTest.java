@@ -17,9 +17,9 @@ public class dataTest {
                 line = line.trim();
                 if (!line.isEmpty()) {
                     String[] parts = line.split(",");
-                    if (parts.length == 3) {
+                    if (parts.length == 5) {
                         clientList.add(parts[0]); // client编号
-                        ageList.add(new BigDecimal(parts[2])); // 年龄
+                        ageList.add(new BigDecimal(parts[4])); // 年龄
                     }
                 }
             }

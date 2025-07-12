@@ -66,9 +66,12 @@ public class EdgeServer3Handler implements HttpHandler {
                 try {
                     // 只在最大区间找最大值，最小区间找最小值
                     String result = EdgeServer3Manager.findExtremesByInterval();
+                    exchange.sendResponseHeaders(200, result.getBytes("UTF-8").length);
+                    try (OutputStream os = exchange.getResponseBody()) {
+                        os.write(result.getBytes("UTF-8"));
+                    }
                     // 该方法只是测试edgeServer2解密比较密文的性能。
                     // String result = org.edgeServer1.utils.EdgeManager.findExtremes();
-                    sendResponse(exchange, 200, result);
                 } catch (Exception e) {
                     sendResponse(exchange, 500, "服务端异常: " + e.getMessage());
                 }

@@ -73,8 +73,8 @@ public class Main {
                     try {
                         String[] parts = dataForThreads.get(idx).split(",");
                         String clientId = parts[0];
-                        String interval = parts[1];
-                        BigDecimal data = new BigDecimal(parts[2]);
+                        String interval = parts[3];
+                        BigDecimal data = new BigDecimal(parts[4]);
                         BigInteger cipherText, squareCipherText;
                         String url;
                         if (idx < total / 2) {

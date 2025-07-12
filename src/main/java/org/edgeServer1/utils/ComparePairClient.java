@@ -45,9 +45,16 @@ public class ComparePairClient {
                     .header("Content-Type", "application/json")
                     .POST(HttpRequest.BodyPublishers.ofString(json.toString()))
                     .build();
-            httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+
+            if (response.statusCode() == 200) {
+                System.out.println("成功通知edgeServer2保存极值结果");
+            } else {
+                System.err.println("通知edgeServer2保存极值失败，状态码: " + response.statusCode() + ", 响应: " + response.body());
+            }
         } catch (Exception e) {
-            // 忽略异常
+            System.err.println("通知edgeServer2保存极值异常: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 }

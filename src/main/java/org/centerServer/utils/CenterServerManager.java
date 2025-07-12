@@ -4,7 +4,7 @@ import java.math.BigInteger;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.Map;
+import java.util.*;
 
 public class CenterServerManager {
     // 用于存储所有收到的密文，key为serverType，value为密文
@@ -23,20 +23,23 @@ public class CenterServerManager {
     private static String minClientId1 = null, minCipherText1 = null;
     private static String minClientId3 = null, minCipherText3 = null;
     private static String extremeMaxId = null, extremeMinId = null;
-    private static boolean compared = false;
 
     public static void processAggregatedCipherText(String serverType, String cipherText, int clientCount) {
         receivedCipherTextMap.put(serverType, cipherText);
         clientCountMap.put(serverType, clientCount);
         // 如果收到的密文数大于等于2，才进行聚合
+    }
+
+    public static String getDecryptedText() {
+        System.out.println("Center Server开始解密聚合值......");
         if (receivedCipherTextMap.size() >= 2) {
             try {
-                java.util.Collection<String> values = receivedCipherTextMap.values();
-                java.math.BigInteger result = null;
-                java.math.BigInteger n2 = org.centerServer.utils.ImprovePaillier.getN()
-                        .multiply(org.centerServer.utils.ImprovePaillier.getN());
+                Collection<String> values = receivedCipherTextMap.values();
+                BigInteger result = null;
+                BigInteger n2 = ImprovePaillier.getN()
+                        .multiply(ImprovePaillier.getN());
                 for (String v : values) {
-                    java.math.BigInteger c = new java.math.BigInteger(v);
+                    BigInteger c = new BigInteger(v);
                     if (result == null) {
                         result = c;
                     } else {
@@ -45,19 +48,16 @@ public class CenterServerManager {
                 }
                 aggregatedCipherText = result.toString();
                 // 解密
-                java.math.BigInteger decryptedBigInt = org.centerServer.utils.ImprovePaillier.decrypt(result);
-                java.math.BigDecimal m = new java.math.BigDecimal(decryptedBigInt)
-                        .divide(java.math.BigDecimal.TEN.pow(SCALE), SCALE, java.math.RoundingMode.HALF_UP);
-                decryptedText = m.setScale(2, java.math.RoundingMode.HALF_UP).toPlainString();
-                System.out.println("Center Server解密结果: " + decryptedText);
+                BigInteger decryptedBigInt = ImprovePaillier.decrypt(result);
+                BigDecimal m = new BigDecimal(decryptedBigInt)
+                        .divide(BigDecimal.TEN.pow(SCALE), SCALE, RoundingMode.HALF_UP);
+                decryptedText = m.setScale(2, RoundingMode.HALF_UP).toPlainString();
+                System.out.println("Center Server聚合密文解密结果: " + decryptedText);
             } catch (Exception e) {
                 System.err.println("Center Server处理密文错误: " + e.getMessage());
                 e.printStackTrace();
             }
         }
-    }
-
-    public static String getDecryptedText() {
         StringBuilder response = new StringBuilder();
         response.append("Center Server状态:\n");
         for (Map.Entry<String, String> entry : receivedCipherTextMap.entrySet()) {
@@ -71,14 +71,17 @@ public class CenterServerManager {
 
     // 新增：获取均值方法
     public static String getMeanResult() {
+        getDecryptedText(); // 确保解密结果已生成
         int totalClientCount = clientCountMap.values().stream().mapToInt(Integer::intValue).sum();
         if (totalClientCount == 0 || decryptedText.isEmpty()) {
             return "尚未收到足够的密文或明文结果未生成";
         }
         try {
+            System.out.println("Center Server开始计算均值......");
             java.math.BigDecimal sum = new java.math.BigDecimal(decryptedText);
             java.math.BigDecimal mean = sum.divide(java.math.BigDecimal.valueOf(totalClientCount), 8,
                     java.math.RoundingMode.HALF_UP);
+            System.out.println("Center Server均值计算结果: " + mean.toPlainString());
             return "当前均值: " + mean.toPlainString();
         } catch (Exception e) {
             return "均值计算出错: " + e.getMessage();
@@ -89,34 +92,7 @@ public class CenterServerManager {
     public static void processVarianceCipherText(String serverType, String encryptedValue, int clientCount) {
         varianceCipherTextMap.put(serverType, encryptedValue);
         // 如果收到的密文数大于等于2，才进行聚合
-        if (varianceCipherTextMap.size() >= 2) {
-            try {
-                java.util.Collection<String> values = varianceCipherTextMap.values();
-                java.math.BigInteger result = null;
-                java.math.BigInteger n2 = org.centerServer.utils.ImprovePaillier.getN()
-                        .multiply(org.centerServer.utils.ImprovePaillier.getN());
-                for (String v : values) {
 
-                    java.math.BigInteger c = new java.math.BigInteger(v);
-                    System.out.println("当前的sumX2密文" + c);
-                    if (result == null) {
-                        result = c;
-                    } else {
-                        result = result.multiply(c).mod(n2);
-                    }
-                }
-                // 解密
-                java.math.BigInteger decryptedBigInt = org.centerServer.utils.ImprovePaillier.decrypt(result);
-                System.out.println("Center Server方差密文解密结果: " + decryptedBigInt.toString());
-                java.math.BigDecimal m = new java.math.BigDecimal(decryptedBigInt)
-                        .divide(java.math.BigDecimal.TEN.pow(SCALE), SCALE, java.math.RoundingMode.HALF_UP);
-                varianceDecryptedText = m.setScale(8, java.math.RoundingMode.HALF_UP).toPlainString();
-                System.out.println("Center Server方差E(x^2)解密结果: " + varianceDecryptedText);
-            } catch (Exception e) {
-                System.err.println("Center Server处理方差密文错误: " + e.getMessage());
-                e.printStackTrace();
-            }
-        }
     }
 
     // 处理极值密文
@@ -133,13 +109,10 @@ public class CenterServerManager {
             minClientId3 = minClientId;
             minCipherText3 = minCipherText;
         }
-        compared = false;
     }
 
     // 极值比较逻辑
     private static void compareExtreme() {
-        if (compared)
-            return;
         if (maxCipherText1 != null && maxCipherText3 != null) {
             // max: server1用Paillier，server3用NEW_PAILLIER
             System.out.println("maxCipherText1: " + maxCipherText1);
@@ -173,7 +146,6 @@ public class CenterServerManager {
                 extremeMinId = minClientId3;
             }
         }
-        compared = true;
     }
 
     // 获取极值结果
@@ -187,24 +159,62 @@ public class CenterServerManager {
 
     // 获取方差结果
     public static String getVarianceResult() {
+        System.out.println("Center Server开始计算方差......");
+        getDecryptedText(); // 确保解密结果已生成
+
+        // 直接计算均值，避免重复调用getMeanResult()
+        int totalClientCount = clientCountMap.values().stream().mapToInt(Integer::intValue).sum();
+        if (totalClientCount == 0 || decryptedText.isEmpty()) {
+            return "尚未收到足够的密文或明文结果未生成";
+        }
+
+        // 计算均值
+        java.math.BigDecimal sum = new java.math.BigDecimal(decryptedText);
+        java.math.BigDecimal mean = sum.divide(java.math.BigDecimal.valueOf(totalClientCount), 8,
+                java.math.RoundingMode.HALF_UP);
+        System.out.println("Center Server均值计算结果: " + mean.toPlainString());
+
+        if (varianceCipherTextMap.size() >= 2) {
+            try {
+                Collection<String> values = varianceCipherTextMap.values();
+                BigInteger result = null;
+                BigInteger n2 = ImprovePaillier.getN()
+                        .multiply(ImprovePaillier.getN());
+                for (String v : values) {
+
+                    BigInteger c = new BigInteger(v);
+                    if (result == null) {
+                        result = c;
+                    } else {
+                        result = result.multiply(c).mod(n2);
+                    }
+                }
+                // 解密
+                BigInteger decryptedBigInt = ImprovePaillier.decrypt(result);
+                BigDecimal m = new BigDecimal(decryptedBigInt)
+                        .divide(BigDecimal.TEN.pow(SCALE), SCALE, RoundingMode.HALF_UP);
+                varianceDecryptedText = m.setScale(8, RoundingMode.HALF_UP).toPlainString();
+            } catch (Exception e) {
+                System.err.println("Center Server处理方差密文错误: " + e.getMessage());
+                e.printStackTrace();
+            }
+        }
         if (varianceDecryptedText.isEmpty() || decryptedText.isEmpty()) {
             return "尚未收到足够的密文或明文结果未生成";
         }
         try {
-            int totalClientCount = clientCountMap.values().stream().mapToInt(Integer::intValue).sum();
-
             BigDecimal sumX2 = new BigDecimal(varianceDecryptedText);
-            System.out.println("方差x^2解密结果: " + sumX2.toPlainString());
-            System.out.println("sumX2");
+            System.out.println("sumX^2解密结果: " + sumX2.toPlainString());
             BigDecimal ex2 = sumX2.divide(BigDecimal.valueOf(totalClientCount), SCALE, RoundingMode.HALF_UP);
             System.out.println("方差E(x^2): " + ex2.toPlainString());
-            // 均值
-            BigDecimal sum = new BigDecimal(decryptedText);
-
-            BigDecimal mean = sum.divide(BigDecimal.valueOf(totalClientCount), SCALE, RoundingMode.HALF_UP);
+            // 使用已计算的均值
             BigDecimal mean2 = mean.pow(2);
             BigDecimal variance = ex2.subtract(mean2);
-            return "E(x^2): " + ex2.toPlainString() + "\nmean^2: " + mean2.toPlainString() + "\n方差: "
+            System.out.println("Center Server方差计算结束: " + variance.toPlainString() +
+                    "\nE(x^2): " + ex2.toPlainString() +
+                    "\nE(x)^2: " + mean2.toPlainString());
+
+            return "E(x^2): " + ex2.toPlainString() + "\nE(x)^2: " + mean2.toPlainString() + "\n方差: "
                     + variance.toPlainString();
         } catch (Exception e) {
             return "方差计算出错: " + e.getMessage();

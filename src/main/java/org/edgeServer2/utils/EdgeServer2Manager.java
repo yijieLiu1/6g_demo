@@ -31,6 +31,7 @@ public class EdgeServer2Manager {
 
     // 在求极值时的调试信息（可选）
     private static int compareCount = 0;
+    private static long compareComputeTime = 0; // 用于记录比较计算时间
 
     // 新增：只保存密文和clientCount
     private static String savedCipherText = null;
@@ -239,10 +240,10 @@ public class EdgeServer2Manager {
         }
     }
 
-    public static void saveCompareResult(String max, String min) {
+    public static void saveCompareResult(String max, String min, String computeTime) {
         maxId = max;
         minId = min;
-
+        compareComputeTime = Long.parseLong(computeTime);
         System.out.println("[compare] 总共解密 " + compareCount + " 次");
         compareCount = 0;
 
@@ -250,7 +251,7 @@ public class EdgeServer2Manager {
 
     // getCompareResult返回最大最小id
     public static String getCompareResult() {
-        return String.format("最大值 clientId: %s, 最小值 clientId: %s", maxId, minId);
+        return String.format("最大值 clientId: %s, 最小值 clientId: %s,用时: %s", maxId, minId, compareComputeTime + "ms");
     }
 
     // 新增：获取sumX2的ImprovePaillier密文并上传centerServer
