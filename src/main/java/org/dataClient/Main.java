@@ -72,6 +72,7 @@ public class Main {
                 batchFutures.add(java.util.concurrent.CompletableFuture.runAsync(() -> {
                     try {
                         String[] parts = dataForThreads.get(idx).split(",");
+                        // 选择数据集中的不同的列
                         String clientId = parts[0];
                         String interval = parts[3];
                         BigDecimal data = new BigDecimal(parts[4]);
