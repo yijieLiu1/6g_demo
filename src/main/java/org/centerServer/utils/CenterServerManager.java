@@ -137,8 +137,10 @@ public class CenterServerManager {
             // min: server1用Paillier，server3用NEW_PAILLIER
             BigDecimal min1 = Paillier
                     .decrypt(new BigInteger(minCipherText1));
+            // min1=r1*m1+r2
             BigDecimal min3 = Paillier.NEW_PAILLIER
                     .decryptInst(new BigInteger(minCipherText3));
+            // min3=r1*m2-r3
             BigDecimal diff = min1.subtract(min3); // r1(m1-m2)+r2+r3
             if (diff.compareTo(BigDecimal.ZERO) < 0) {
                 extremeMinId = minClientId1;

@@ -2,6 +2,7 @@ package org.dataClient;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -20,9 +21,12 @@ public class Main {
     public static void main(String[] args) {
         try {
             long starttime = System.currentTimeMillis();
-            encryptAndSendToEdgeServers("data.csv");
+            encryptAndSendToEdgeServers("smart_manufacturing_data_preprocessed.csv");
             long endtime = System.currentTimeMillis();
             System.out.println("所有客户端注册和请求发送完成，耗时: " + (endtime - starttime) + " 毫秒");
+
+            // 新增：输出加密后的数据为CSV文件
+            // outputEncryptedDataToCSV("encrypted_data.csv");
 
         } catch (Exception e) {
             System.err.println("Error starting server: " + e.getMessage());
@@ -30,10 +34,15 @@ public class Main {
         }
     }
 
+    // 全局变量存储加密数据
+    private static List<String> encryptedDataList = new ArrayList<>();
+
     private static void encryptAndSendToEdgeServers(String filePath) {
         List<String> clientData = new ArrayList<>();
         try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
             String line;
+            // 跳过第一行
+            br.readLine();
             while ((line = br.readLine()) != null) {
                 clientData.add(line.trim());
             }
@@ -74,8 +83,8 @@ public class Main {
                         String[] parts = dataForThreads.get(idx).split(",");
                         // 选择数据集中的不同的列
                         String clientId = parts[0];
-                        String interval = parts[3];
-                        BigDecimal data = new BigDecimal(parts[4]);
+                        String interval = parts[1];
+                        BigDecimal data = new BigDecimal(parts[2]);
                         BigInteger cipherText, squareCipherText;
                         String url;
                         if (idx < total / 2) {
@@ -87,6 +96,17 @@ public class Main {
                             squareCipherText = newPaillier.encryptInst(data.multiply(data));
                             url = "http://localhost:24567/post/cipherText";
                         }
+                        /**
+                         * 保存加密数据到全局列表
+                         * 线程中使用synchronized保证线程安全
+                         * !!!如果不需要保存加密数据，则不需要使用synchronized，避免开销
+                         */
+                        // synchronized (encryptedDataList) {
+                        // encryptedDataList.add(clientId + "," + interval + "," + cipherText.toString()
+                        // + ","
+                        // + squareCipherText.toString());
+                        // }
+
                         JSONObject json = new JSONObject();
                         json.put("cipherText", cipherText.toString());
                         json.put("squareCipherText", squareCipherText.toString());
@@ -140,5 +160,42 @@ public class Main {
             }
         }
         System.err.println("最终发送失败 clientId: " + clientId);
+    }
+
+    /**
+     * 输出加密后的数据为CSV文件
+     * 第一列：machine_id
+     * 第二列：区间标签
+     * 第三列：数据密文 (cipherText)
+     * 第四列：数据平方密文 (squareCipherText)
+     */
+    /**
+     * 输出已加密的数据为CSV文件（直接使用encryptAndSendToEdgeServers中生成的数据）
+     * 第一列：machine_id
+     * 第二列：区间标签
+     * 第三列：数据密文 (cipherText)
+     * 第四列：数据平方密文 (squareCipherText)
+     */
+    private static void outputEncryptedDataToCSV(String outputFilePath) {
+        if (encryptedDataList.isEmpty()) {
+            System.out.println("没有加密数据可输出，请先运行encryptAndSendToEdgeServers方法");
+            return;
+        }
+
+        try (FileWriter writer = new FileWriter(outputFilePath)) {
+            // 写入CSV表头
+            writer.write("machine_id,interval,cipherText,squareCipherText\n");
+
+            // 直接写入已保存的加密数据
+            for (String encryptedData : encryptedDataList) {
+                writer.write(encryptedData + "\n");
+            }
+
+            System.out.println("加密数据已输出到: " + outputFilePath + "，共 " + encryptedDataList.size() + " 条记录");
+
+        } catch (IOException e) {
+            System.err.println("Error writing encrypted data to CSV: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
 }

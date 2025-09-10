@@ -73,7 +73,7 @@ public class CenterServerHandler implements HttpHandler {
                 return;
             }
         }
-        // 获取极值结果
+        // 获取极值结果，进行了比较计算
         else if (path.equals("/get/extremeResult")) {
             System.out.println("\n\nCenterServer收到/get/extremeResult请求，开始获取极值结果......");
             long startTime = System.currentTimeMillis();
@@ -81,7 +81,7 @@ public class CenterServerHandler implements HttpHandler {
             long endTime = System.currentTimeMillis();
             System.out.println("\nCenterServer获取极值结果结束......共耗时" + (endTime - startTime) + "ms");
         }
-        // 处理极值比较的密文。
+        // 只赋值，不进行比较计算。
         else if (path.equals("/post/extremeCipherText")) {
             if (exchange.getRequestMethod().equals("POST")) {
                 BufferedReader reader = new BufferedReader(new InputStreamReader(exchange.getRequestBody(), "UTF-8"));
@@ -98,7 +98,7 @@ public class CenterServerHandler implements HttpHandler {
                     String minClientId = json.getString("minClientId");
                     String minCipherText = json.getString("minCipherText");
                     String serverType = json.getString("serverId");
-                    org.centerServer.utils.CenterServerManager.processExtremeCipherText(serverType, maxClientId,
+                    CenterServerManager.processExtremeCipherText(serverType, maxClientId,
                             maxCipherText, minClientId, minCipherText);
                     response = "Success";
                 } catch (Exception e) {

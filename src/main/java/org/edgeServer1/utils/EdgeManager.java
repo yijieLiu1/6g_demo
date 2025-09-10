@@ -145,9 +145,10 @@ public class EdgeManager {
         // 构建出En(r1*(m1-m2)+r2)的密文
         BigInteger cipherText2Inv = cipherText2.modInverse(nSquared);
         BigInteger diffCipherText = cipherText1.multiply(cipherText2Inv).mod(nSquared);
+        // En(r1*(m1-m2))
         BigInteger blindedDiffCipherText = diffCipherText.modPow(r1, nSquared);
-
         BigInteger r2CipherText = Paillier.encrypt(r2);
+        // En(r1*(m1-m2)+r2)
         BigInteger finalCipherText = blindedDiffCipherText.multiply(r2CipherText).mod(nSquared);
 
         return finalCipherText.toString();
