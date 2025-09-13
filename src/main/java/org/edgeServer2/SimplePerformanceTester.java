@@ -13,7 +13,7 @@ public class SimplePerformanceTester {
     private static final HttpClient httpClient = HttpClient.newHttpClient();
 
     public static void main(String[] args) {
-        int testCount = 10; // 默认测试10次
+        int testCount = 100; // 默认测试10次
 
         if (args.length > 0) {
             try {

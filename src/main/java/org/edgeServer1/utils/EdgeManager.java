@@ -164,9 +164,10 @@ public class EdgeManager {
         SecureRandom random = new SecureRandom();
 
         BigInteger m1 = new BigInteger(cipheStringrText);
+        // r1：512位
         BigInteger r1 = new BigInteger(
-                "106825203108678901282936524768508786416970440522324880302033274827400270090769");
-        BigInteger r2 = new BigInteger(128, random);
+                "5163365649498243341338468909219803587450474561297321843308647959424211971461820777795558003875309311358110235194869856548615697158987831514579304010244690");
+        BigInteger r2 = new BigInteger(256, random);
         // En(r1*m1)
         BigInteger blinded = m1.modPow(r1, Paillier.getN2());
         // En(r1*m1+r2)

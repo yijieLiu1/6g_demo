@@ -1,6 +1,8 @@
 package org;
 
 import java.io.*;
+import java.math.BigInteger;
+import java.security.SecureRandom;
 import java.util.Random;
 
 public class fakeDataGenerate {
@@ -28,14 +30,25 @@ public class fakeDataGenerate {
                                                                                                                   // j:9400-10000
 
     public static void main(String[] args) {
-        try {
-            // 清空文件并生成新数据
-            generateRandomData();
-            System.out.println("数据生成完成！共生成 " + NUM_ROWS + " 行数据到 " + CSV_FILE_PATH);
-        } catch (IOException e) {
-            System.err.println("数据生成失败: " + e.getMessage());
-            e.printStackTrace();
-        }
+
+        BigInteger r1 = new BigInteger(256, new SecureRandom());
+        System.out.println("r1: " + r1);
+        System.out.println("r1 length: " + r1.bitLength());
+        BigInteger r2 = new BigInteger(128, new SecureRandom());
+        System.out.println("r2: " + r2);
+        System.out.println("r2 length: " + r2.bitLength());
+        BigInteger r3 = new BigInteger(512, new SecureRandom());
+        System.out.println("r3: " + r3);
+        System.out.println("r3 length: " + r3.bitLength());
+
+        // 清空文件并生成新数据
+        // generateRandomData();
+        System.out.println("数据生成完成！共生成 " + NUM_ROWS + " 行数据到 " + CSV_FILE_PATH);
+        // } catch (IOException e) {
+        // System.err.println("数据生成失败: " + e.getMessage());
+        // e.printStackTrace();
+        // }
+
     }
 
     public static void generateRandomData() throws IOException {

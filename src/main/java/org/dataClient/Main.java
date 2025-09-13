@@ -26,7 +26,7 @@ public class Main {
             System.out.println("所有客户端注册和请求发送完成，耗时: " + (endtime - starttime) + " 毫秒");
 
             // 新增：输出加密后的数据为CSV文件
-            // outputEncryptedDataToCSV("encrypted_data.csv");
+            outputEncryptedDataToCSV("encrypted_data.csv");
 
         } catch (Exception e) {
             System.err.println("Error starting server: " + e.getMessage());
@@ -101,11 +101,11 @@ public class Main {
                          * 线程中使用synchronized保证线程安全
                          * !!!如果不需要保存加密数据，则不需要使用synchronized，避免开销
                          */
-                        // synchronized (encryptedDataList) {
-                        // encryptedDataList.add(clientId + "," + interval + "," + cipherText.toString()
-                        // + ","
-                        // + squareCipherText.toString());
-                        // }
+                        synchronized (encryptedDataList) {
+                            encryptedDataList.add(clientId + "," + interval + "," + cipherText.toString()
+                                    + ","
+                                    + squareCipherText.toString());
+                        }
 
                         JSONObject json = new JSONObject();
                         json.put("cipherText", cipherText.toString());

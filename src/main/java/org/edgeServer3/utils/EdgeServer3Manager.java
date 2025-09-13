@@ -159,8 +159,8 @@ public class EdgeServer3Manager {
 
         BigInteger m2 = new BigInteger(cipheStringrText);
         BigInteger r1 = new BigInteger(
-                "106825203108678901282936524768508786416970440522324880302033274827400270090769");
-        BigInteger r3 = new BigInteger(128, random);
+                "5163365649498243341338468909219803587450474561297321843308647959424211971461820777795558003875309311358110235194869856548615697158987831514579304010244690");
+        BigInteger r3 = new BigInteger(256, random);
         // En(r1*m2)
         BigInteger blinded = m2.modPow(r1, Paillier.getN2());
         // En(r1*m2-r3)
@@ -257,7 +257,11 @@ public class EdgeServer3Manager {
         String minInterval = Collections.min(intervalSet);
         String maxInterval = Collections.max(intervalSet);
         List<String> minClients = intervalToClients.get(minInterval);
+        System.out.println("minInterval: " + minInterval);
+        System.out.println("minClients: " + minClients);
         List<String> maxClients = intervalToClients.get(maxInterval);
+        System.out.println("maxInterval: " + maxInterval);
+        System.out.println("maxClients: " + maxClients);
         if (minClients == null || minClients.isEmpty() || maxClients == null || maxClients.isEmpty()) {
             return "No clients in min or max interval";
         }
