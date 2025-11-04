@@ -15,11 +15,11 @@ public class EdgeServer2Handler implements HttpHandler {
         String response;
         // 获取解密的聚合值。
         if (path.equals("/get/decryptedText")) {
-            System.out.println("\n\nedgeServer2收到/get/decryptedText请求，开始解密聚合值......");
+            System.out.println("\nedgeServer2: 收到/get/decryptedText请求，开始解密聚合值......");
             long startTime = System.currentTimeMillis();
             response = EdgeServer2Manager.decryptAndGetDecryptedText();
             long endTime = System.currentTimeMillis();
-            System.out.println("\nedgeServer2解密聚合值结束......共耗时" + (endTime - startTime) + "ms");
+            System.out.println("edgeServer2: 解密聚合值共耗时" + (endTime - startTime) + "ms");
 
         }
         // edgeServer1-->get/sumcipherText时触发
@@ -52,11 +52,13 @@ public class EdgeServer2Handler implements HttpHandler {
         }
         // 获取极值。
         else if (path.equals("/get/compareResult")) {
+            System.out.println("\nedgeServer2: 收到/get/compareResult请求，开始获取极值结果......");
             response = EdgeServer2Manager.getCompareResult();
+            System.out.println("edgeServer2: 极值结果获取完成......结果: " + response);
         }
         // 响应edgeServer1的密文请求，并处理。
         else if (path.equals("/post/comparisonData")) {
-            System.out.println("\n\nedgeServer2收到/post/comparisonData请求，开始处理比较数据......");
+            System.out.println("\nedgeServer2收到/post/comparisonData请求，开始处理比较数据......");
             if (exchange.getRequestMethod().equalsIgnoreCase("POST")) {
                 String clientId1 = exchange.getRequestHeaders().getFirst("Client-ID1");
                 String clientId2 = exchange.getRequestHeaders().getFirst("Client-ID2");
@@ -84,31 +86,34 @@ public class EdgeServer2Handler implements HttpHandler {
         }
         // 获取Impaillier加密的密文，并把这个密文发送给centerServer.
         else if (path.equals("/get/impaillierCipherText")) {
+            System.out.println("\nedgeServer2: 收到/get/impaillierCipherText请求，开始获取Impaillier密文并发送给centerServer......");
             response = EdgeServer2Manager.getImpaillierCipherText();
         }
         // 获取sumX2的Impaillier密文，并发送给centerServer
         else if (path.equals("/get/impaillierVarianceCipherText")) {
+            System.out.println(
+                    "\nedgeServer2: 收到/get/impaillierVarianceCipherText请求，开始获取Impaillier平方密文并发送给centerServer......");
             response = EdgeServer2Manager.getAndsendImpaillierVarianceCipherText();
         }
         // 获取平均值
         else if (path.equals("/get/meanResult")) {
-            System.out.println("\n\nedgeServer2收到/get/meanResult请求，开始计算平均值......");
+            System.out.println("\nedgeServer2: 收到/get/meanResult请求，开始计算平均值......");
             long startTime = System.currentTimeMillis();
             response = EdgeServer2Manager.processAndGetMeanResult();
             long endTime = System.currentTimeMillis();
-            System.out.println("\nedgeServer2计算平均值结束......共耗时" + (endTime - startTime) + "ms");
+            System.out.println("edgeServer2: 计算平均值结束......共耗时" + (endTime - startTime) + "ms");
         }
         // 获取方差结果
         else if (path.equals("/get/varianceResult")) {
-            System.out.println("\n\nedgeServer2收到/get/varianceResult请求，开始计算方差结果......");
+            System.out.println("\nedgeServer2: 收到/get/varianceResult请求，开始计算方差结果......");
             long startTime = System.currentTimeMillis();
             response = EdgeServer2Manager.processAndGetVarianceResult();
             long endTime = System.currentTimeMillis();
-            System.out.println("\nedgeServer2计算方差结果结束......共耗时" + (endTime - startTime) + "ms");
+            System.out.println("edgeServer2: 计算方差结果结束......共耗时" + (endTime - startTime) + "ms");
         }
         // 接收来自edgeServer1的最终极值保存请求,只接收最后一轮的比较结果。
         else if (path.equals("/post/finalCompareResult")) {
-            System.out.println("[finalCompareResult] 收到最终极值保存请求");
+            System.out.println("\nedgeServer2: [finalCompareResult] 收到最终极值保存请求");
             if (exchange.getRequestMethod().equalsIgnoreCase("POST")) {
                 BufferedReader reader = new BufferedReader(new InputStreamReader(exchange.getRequestBody(), "UTF-8"));
                 StringBuilder sb = new StringBuilder();

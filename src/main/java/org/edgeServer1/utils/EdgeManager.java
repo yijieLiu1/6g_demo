@@ -222,12 +222,70 @@ public class EdgeManager {
 
     // return "已批量发送比较请求到edgeServer2，共计 " + count + " 次比较请求。请等待edgeServer2处理结果。";
     // }
+    public static String findExtremesByFullComparison() {
+        System.out.println("\nedgeServer1: 收到/post/allComparePair请求，开始处理极值比较数据......");
+        long startTime = System.currentTimeMillis();
+
+        List<String> clientIds = getAllClientIds();
+        if (clientIds.size() < 2) {
+            return "Not enough clients to compare";
+        }
+
+        String maxId = clientIds.get(0);
+        String minId = clientIds.get(0);
+
+        // 全部密文两两比较
+        for (int i = 1; i < clientIds.size(); i++) {
+            String challenger = clientIds.get(i);
+
+            // 比较最大值
+            String cmpCipherMax = generateComparisonCipherText(maxId, challenger);
+            String compareResultMax = org.edgeServer1.utils.ComparePairClient
+                    .sendComparisonDataToEdgeServer2(maxId, challenger, cmpCipherMax);
+            while (compareResultMax == null) {
+                compareResultMax = org.edgeServer1.utils.ComparePairClient
+                        .sendComparisonDataToEdgeServer2(maxId, challenger, cmpCipherMax);
+            }
+            JSONObject resultJsonMax = new JSONObject(compareResultMax);
+            maxId = resultJsonMax.getString("bigger");
+
+            // 比较最小值
+            String cmpCipherMin = generateComparisonCipherText(minId, challenger);
+            String compareResultMin = org.edgeServer1.utils.ComparePairClient
+                    .sendComparisonDataToEdgeServer2(minId, challenger, cmpCipherMin);
+            while (compareResultMin == null) {
+                compareResultMin = org.edgeServer1.utils.ComparePairClient
+                        .sendComparisonDataToEdgeServer2(minId, challenger, cmpCipherMin);
+            }
+            JSONObject resultJsonMin = new JSONObject(compareResultMin);
+            minId = resultJsonMin.getString("smaller");
+        }
+
+        long endTime = System.currentTimeMillis();
+        long computeTime = endTime - startTime;
+        System.out.println(
+                "edgeServer1: 处理比较数据结束: maxId=" + maxId + " minId=" + minId + " ......共耗时 " + computeTime + "ms");
+
+        // 通知edgeServer2保存极值
+        try {
+            ComparePairClient.notifyEdgeServer2FinalResult(maxId, minId, computeTime);
+        } catch (Exception e) {
+            System.err.println("通知edgeServer2保存极值失败: " + e.getMessage());
+        }
+
+        // 本地保存极值
+        lastMaxClientId = maxId;
+        lastMinClientId = minId;
+
+        return "极值比较完成（全密文两两比较）";
+    }
 
     // 新增：只在最大区间找最大值，只在最小区间找最小值
     // 提前划分好区间。相比于之前的方案，省去了找最大client的候选区和最小client候选区的代码。
     // 直接在最大区间内找最大值，在最小区间内找最小值。数据量通常更小
+
     public static String findExtremesByInterval() {
-        System.out.println("\n\nedgeServer1收到/post/comparePair请求，开始处理极值比较数据......");
+        System.out.println("\nedgeServer1: 收到/post/comparePair请求，开始处理极值比较数据......");
         long startTime = System.currentTimeMillis();
         List<String> clientIds = getAllClientIds();
         if (clientIds.size() < 2) {
@@ -283,7 +341,7 @@ public class EdgeManager {
         }
         long endTime = System.currentTimeMillis();
         long computeTime = endTime - startTime;
-        System.out.println("\nedgeServer1处理比较数据结束" + "maxId" + maxId + "minId" + minId + "......共耗时"
+        System.out.println("edgeServer1: 处理比较数据结束" + "maxId" + maxId + "minId" + minId + "......共耗时"
                 + computeTime + "ms");
 
         // 通知edgeServer2保存极值

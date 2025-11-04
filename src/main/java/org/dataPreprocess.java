@@ -1,34 +1,42 @@
 package org;
 
-import java.io.*;
-import java.util.*;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * 数据预处理
  * 1. 数据清洗
  * 2. 区间划分
- * 该方法主要针对真实数据进行预处理。smart_manufacturing_data.csv
+ * 支持截取前 N 条数据
  */
 public class dataPreprocess {
     public static void main(String[] args) {
         String csvFilePath = "smart_manufacturing_data.csv";
-        List<String> cleaned = cleanData(csvFilePath);
+
+        // ✅ 这里设置要处理的条数，比如 5000；如果是 -1 就处理全部
+        int limit = 20000;
+
+        List<String> cleaned = cleanData(csvFilePath, limit);
         List<String> processed = intervalDivision(cleaned);
-        // 可选：写出到新文件，方便后续使用
         writeToFile("smart_manufacturing_data_preprocessed.csv", processed);
     }
 
     private static final String[] INTERVAL_LABELS = { "a", "b", "c", "d", "e", "f", "g", "h", "i", "j" };
 
     /**
-     * 数据清洗：
-     * 1) 仅保留 failure_type == "Normal" 的行
-     * 2) 修改 machine_id = 原值 + 日期时间(到分钟)，如 machineId_2025-01-01 00:00；并移除空格
-     * 3) 删除多余列，只保留 machine_id 以及
-     * temperature,vibration,humidity,pressure,energy_consumption 共 6 列
-     * 返回：包含上述 6 列的行（逗号分隔字符串）
+     * 数据清洗
+     * limit > 0 时，仅保留前 limit 条；limit <= 0 时，处理所有数据
      */
-    public static List<String> cleanData(String csvFilePath) {
+    public static List<String> cleanData(String csvFilePath, int limit) {
         List<String> result = new ArrayList<>();
         try (BufferedReader br = new BufferedReader(new FileReader(csvFilePath))) {
             String header = br.readLine();
@@ -49,15 +57,19 @@ public class dataPreprocess {
             Integer idxEnergy = idx.get("energy_consumption");
             Integer idxFailureType = idx.get("failure_type");
 
-            if (idxTimestamp == null || idxMachineId == null || idxTemp == null || idxVib == null || idxHum == null ||
-                    idxPres == null || idxEnergy == null || idxFailureType == null) {
+            if (idxTimestamp == null || idxMachineId == null || idxTemp == null || idxVib == null ||
+                    idxHum == null || idxPres == null || idxEnergy == null || idxFailureType == null) {
                 return result;
             }
 
             String line;
+            int count = 0;
             while ((line = br.readLine()) != null) {
                 if (line.isEmpty())
                     continue;
+                if (limit > 0 && count >= limit)
+                    break; // ✅ 截断
+
                 String[] parts = line.split(",");
                 if (parts.length < cols.length)
                     continue;
@@ -66,9 +78,9 @@ public class dataPreprocess {
                 if (!"Normal".equals(failureType))
                     continue;
 
-                String timestamp = parts[idxTimestamp].trim(); // 例如 2025-01-01 00:00:00
+                String timestamp = parts[idxTimestamp].trim();
                 String machineId = parts[idxMachineId].trim();
-                String tsToMinute = extractToMinute(timestamp); // 2025-01-01 00:00
+                String tsToMinute = extractToMinute(timestamp);
                 String newMachineId = (machineId + "_" + tsToMinute).replace(" ", "");
 
                 String temperature = parts[idxTemp].trim();
@@ -79,6 +91,7 @@ public class dataPreprocess {
 
                 result.add(String.join(",", Arrays.asList(
                         newMachineId, temperature, vibration, humidity, pressure, energy)));
+                count++;
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -86,17 +99,10 @@ public class dataPreprocess {
         return result;
     }
 
-    /**
-     * 区间划分：对每列数据按最小-最大等宽分 10 个区间，生成对应的区间标签 a-j，
-     * 并在每个数据前插入其标签。
-     * 输入：仅包含 temperature,vibration,humidity,pressure,energy 的行
-     * 输出：每行变为 (label,value) 重复 5 次，总计 10 列
-     */
     public static List<String> intervalDivision(List<String> rows) {
         if (rows == null || rows.isEmpty())
             return Collections.emptyList();
 
-        // 第 0 列为 machine_id（字符串），后续 5 列为数值
         int n = rows.size();
         int m = 5;
         String[] ids = new String[n];
@@ -115,7 +121,6 @@ public class dataPreprocess {
             }
         }
 
-        // 计算每列的 min/max
         double[] min = new double[m];
         double[] max = new double[m];
         Arrays.fill(min, Double.POSITIVE_INFINITY);
@@ -160,21 +165,14 @@ public class dataPreprocess {
             return 9;
         double ratio = (value - min) / (max - min);
         int bin = (int) Math.floor(ratio * 10.0);
-        if (bin < 0)
-            bin = 0;
-        if (bin > 9)
-            bin = 9;
-        return bin;
+        return Math.max(0, Math.min(9, bin));
     }
 
     private static String extractToMinute(String timestamp) {
-        // 假设格式为 yyyy-MM-dd HH:mm:ss 或 yyyy-MM-dd HH:mm
         if (timestamp == null || timestamp.isEmpty())
             return "";
-        // 分割到分钟
         int idx = timestamp.indexOf(":");
         if (idx >= 0) {
-            // 找到第一个冒号（小时与分钟之间），再找第二个冒号（分钟与秒之间）
             int secondColon = timestamp.indexOf(":", idx + 1);
             if (secondColon > 0) {
                 return timestamp.substring(0, secondColon);
@@ -187,7 +185,6 @@ public class dataPreprocess {
         if (lines == null)
             return;
         try (BufferedWriter bw = new BufferedWriter(new FileWriter(path))) {
-            // 写出列头：为清晰，标注每个值前有标签列，并包含 machine_id
             bw.write(
                     "machine_id,t_label,temperature,v_label,vibration,h_label,humidity,p_label,pressure,e_label,energy_consumption");
             bw.newLine();

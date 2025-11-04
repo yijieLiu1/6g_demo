@@ -1,11 +1,5 @@
 package org.dataClient;
 
-import com.sun.net.httpserver.HttpExchange;
-import com.sun.net.httpserver.HttpHandler;
-import com.sun.net.httpserver.HttpServer;
-import org.dataClient.utils.Paillier;
-import org.json.JSONObject;
-
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -15,14 +9,21 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.net.InetSocketAddress;
 import java.net.URI;
-import java.nio.charset.StandardCharsets;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+
+import org.dataClient.utils.Paillier;
+import org.json.JSONObject;
+
+import com.sun.net.httpserver.HttpExchange;
+import com.sun.net.httpserver.HttpHandler;
+import com.sun.net.httpserver.HttpServer;
 
 public class ServerMain {
     // 全局变量存储加密数据
@@ -87,6 +88,7 @@ public class ServerMain {
     }
 
     private static void encryptAndSendToEdgeServers(String filePath) {
+        long startTime = System.currentTimeMillis();
         List<String> clientData = new ArrayList<>();
         try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
             String line;
@@ -172,7 +174,9 @@ public class ServerMain {
         }
         clientData = null;
         System.gc();
-        System.out.println("全部加密并发送完成，资源已释放。可以安全退出。");
+        long endTime = System.currentTimeMillis();
+        System.out.println("全部加密并发送完成，资源已释放。共计耗时"+(endTime-startTime)+"毫秒");
+
     }
 
     private static void sendWithRetry(HttpClient httpClient, HttpRequest request, int maxRetries, String clientId) {

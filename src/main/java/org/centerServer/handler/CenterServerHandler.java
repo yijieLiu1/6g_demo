@@ -1,13 +1,15 @@
 package org.centerServer.handler;
 
-import com.sun.net.httpserver.HttpExchange;
-import com.sun.net.httpserver.HttpHandler;
-import java.io.IOException;
-import java.io.OutputStream;
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
+
 import org.centerServer.utils.CenterServerManager;
 import org.json.JSONObject;
+
+import com.sun.net.httpserver.HttpExchange;
+import com.sun.net.httpserver.HttpHandler;
 
 public class CenterServerHandler implements HttpHandler {
     @Override
@@ -33,7 +35,7 @@ public class CenterServerHandler implements HttpHandler {
             long startTime = System.currentTimeMillis();
             response = CenterServerManager.getDecryptedText();
             long endTime = System.currentTimeMillis();
-            System.out.println("\ncenterServer解密聚合值结束......共耗时" + (endTime - startTime) + "ms");
+            System.out.println("centerServer解密求和值结束......共耗时" + (endTime - startTime) + "ms");
         }
         // 获取均值
         else if (path.equals("/get/meanResult")) {

@@ -1,9 +1,11 @@
 package org.edgeServer2;
 
-import com.sun.net.httpserver.HttpServer;
 import java.io.IOException;
 import java.net.InetSocketAddress;
+
 import org.edgeServer2.handler.EdgeServer2Handler;
+
+import com.sun.net.httpserver.HttpServer;
 
 public class Main {
     private static final int PORT = 33456;

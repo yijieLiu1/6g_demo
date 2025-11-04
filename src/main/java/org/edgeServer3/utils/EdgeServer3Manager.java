@@ -236,8 +236,67 @@ public class EdgeServer3Manager {
     // return "已批量发送比较请求到edgeServer2，共计 " + count + " 次比较请求。请等待edgeServer2处理结果。";
     // }
 
+    // 全遍历构建比较密文
+    public static String findExtremesByFullComparison() {
+        System.out.println("edgeServer3开始处理极值比较数据......");
+        long startTime = System.currentTimeMillis();
+
+        List<String> clientIds = getAllClientIds();
+        if (clientIds.size() < 2) {
+            return "Not enough clients to compare";
+        }
+
+        String maxId = clientIds.get(0);
+        String minId = clientIds.get(0);
+
+        // 全部密文两两比较
+        for (int i = 1; i < clientIds.size(); i++) {
+            String challenger = clientIds.get(i);
+
+            // 比较最大值
+            String cmpCipherMax = generateComparisonCipherText(maxId, challenger);
+            String compareResultMax = org.edgeServer3.utils.ComparePairClient
+                    .sendComparisonDataToEdgeServer4(maxId, challenger, cmpCipherMax);
+            while (compareResultMax == null) {
+                compareResultMax = org.edgeServer3.utils.ComparePairClient
+                        .sendComparisonDataToEdgeServer4(maxId, challenger, cmpCipherMax);
+            }
+            JSONObject resultJsonMax = new JSONObject(compareResultMax);
+            maxId = resultJsonMax.getString("bigger");
+
+            // 比较最小值
+            String cmpCipherMin = generateComparisonCipherText(minId, challenger);
+            String compareResultMin = org.edgeServer3.utils.ComparePairClient
+                    .sendComparisonDataToEdgeServer4(minId, challenger, cmpCipherMin);
+            while (compareResultMin == null) {
+                compareResultMin = org.edgeServer3.utils.ComparePairClient
+                        .sendComparisonDataToEdgeServer4(minId, challenger, cmpCipherMin);
+            }
+            JSONObject resultJsonMin = new JSONObject(compareResultMin);
+            minId = resultJsonMin.getString("smaller");
+        }
+
+        long endTime = System.currentTimeMillis();
+        long computeTime = endTime - startTime;
+        System.out.println(
+                "edgeServer3处理比较数据结束: maxId=" + maxId + " minId=" + minId + " ......共耗时 " + computeTime + "ms");
+
+        // 通知edgeServer2保存极值
+        try {
+            ComparePairClient.notifyEdgeServer4FinalResult(maxId, minId, computeTime);
+        } catch (Exception e) {
+            System.err.println("通知edgeServer4保存极值失败: " + e.getMessage());
+        }
+
+        // 本地保存极值
+        lastMaxClientId = maxId;
+        lastMinClientId = minId;
+
+        return "极值比较完成（全密文两两比较）";
+    }
+
     public static String findExtremesByInterval() {
-        System.out.println("\n\nedgeServer3收到/post/comparePair请求，开始处理极值比较数据......");
+        System.out.println("edgeServer3收到/post/comparePair请求，开始处理极值比较数据......");
         long startTime = System.currentTimeMillis();
         List<String> clientIds = getAllClientIds();
         if (clientIds.size() < 2) {
@@ -257,11 +316,8 @@ public class EdgeServer3Manager {
         String minInterval = Collections.min(intervalSet);
         String maxInterval = Collections.max(intervalSet);
         List<String> minClients = intervalToClients.get(minInterval);
-        System.out.println("minInterval: " + minInterval);
-        System.out.println("minClients: " + minClients);
+
         List<String> maxClients = intervalToClients.get(maxInterval);
-        System.out.println("maxInterval: " + maxInterval);
-        System.out.println("maxClients: " + maxClients);
         if (minClients == null || minClients.isEmpty() || maxClients == null || maxClients.isEmpty()) {
             return "No clients in min or max interval";
         }
@@ -296,7 +352,7 @@ public class EdgeServer3Manager {
             minId = smaller;
         }
         long endTime = System.currentTimeMillis();
-        System.out.println("\nedgeServer3处理比较数据结束" + "maxId" + maxId + "minId" + minId + "......共耗时"
+        System.out.println("edgeServer3处理比较数据结束" + "maxId" + maxId + "minId" + minId + "......共耗时"
                 + (endTime - startTime) + "ms");
         // 通知edgeServer2保存极值
         org.edgeServer3.utils.ComparePairClient.notifyEdgeServer4FinalResult(maxId, minId, endTime - startTime);

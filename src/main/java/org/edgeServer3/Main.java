@@ -1,9 +1,11 @@
 package org.edgeServer3;
 
-import com.sun.net.httpserver.HttpServer;
 import java.io.IOException;
 import java.net.InetSocketAddress;
+
 import org.edgeServer3.handler.EdgeServer3Handler;
+
+import com.sun.net.httpserver.HttpServer;
 
 public class Main {
     private static final int PORT = 24567;
@@ -22,6 +24,7 @@ public class Main {
             server.createContext("/post/triggerCompare", edgeServer3Handler);
 
             server.createContext("/post/comparePair", edgeServer3Handler);
+            server.createContext("/post/allComparePair", edgeServer3Handler);
             server.createContext("/post/finalCompareResult", edgeServer3Handler);
 
             // 设置线程池

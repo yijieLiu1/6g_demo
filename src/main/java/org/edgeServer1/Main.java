@@ -1,9 +1,11 @@
 package org.edgeServer1;
 
-import com.sun.net.httpserver.HttpServer;
 import java.io.IOException;
 import java.net.InetSocketAddress;
+
 import org.edgeServer1.handler.EdgeHandler;
+
+import com.sun.net.httpserver.HttpServer;
 
 public class Main {
     private static final int PORT = 23456;
@@ -27,6 +29,8 @@ public class Main {
             server.createContext("/post/triggerCompare", edgeHandler);
             // 多轮通信比较密文发送
             server.createContext("/post/comparePair", edgeHandler);
+            // 多轮通信比较密文发送——全密文，无泛化
+            server.createContext("/post/allComparePair", edgeHandler);
             server.createContext("/post/finalCompareResult", edgeHandler);
 
             // 设置线程池
@@ -34,7 +38,7 @@ public class Main {
 
             // 启动服务器
             server.start();
-            System.out.println("Edge Server started on port " + PORT);
+            System.out.println("Edge Server1 started on port " + PORT);
 
         } catch (IOException e) {
             System.err.println("Error starting server: " + e.getMessage());

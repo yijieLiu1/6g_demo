@@ -1,10 +1,11 @@
 package org.centerServer.utils;
 
-import java.math.BigInteger;
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.math.RoundingMode;
+import java.util.Collection;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.*;
 
 public class CenterServerManager {
     // 用于存储所有收到的密文，key为serverType，value为密文
@@ -65,7 +66,7 @@ public class CenterServerManager {
                     .append(entry.getValue().isEmpty() ? "未收到" : entry.getValue()).append("\n");
         }
         response.append("聚合密文: ").append(aggregatedCipherText.isEmpty() ? "未生成" : aggregatedCipherText).append("\n");
-        response.append("解密结果: ").append(decryptedText.isEmpty() ? "未解密" : decryptedText);
+        response.append("中心服务器求和结果为: ").append(decryptedText.isEmpty() ? "未解密" : decryptedText);
         return response.toString();
     }
 
@@ -82,7 +83,7 @@ public class CenterServerManager {
             java.math.BigDecimal mean = sum.divide(java.math.BigDecimal.valueOf(totalClientCount), 8,
                     java.math.RoundingMode.HALF_UP);
             System.out.println("Center Server均值计算结果: " + mean.toPlainString());
-            return "当前均值: " + mean.toPlainString();
+            return "中心服务器求均值结果为: " + mean.toPlainString();
         } catch (Exception e) {
             return "均值计算出错: " + e.getMessage();
         }
@@ -156,7 +157,7 @@ public class CenterServerManager {
         if (extremeMaxId == null || extremeMinId == null) {
             return "尚未收到足够的极值密文";
         }
-        return "最大值 clientId: " + extremeMaxId + ", 最小值 clientId: " + extremeMinId;
+        return "中心服务器求极值结果为: \n"+"最大值 clientId: " + extremeMaxId + ", 最小值 clientId: " + extremeMinId;
     }
 
     // 获取方差结果
@@ -216,7 +217,7 @@ public class CenterServerManager {
                     "\nE(x^2): " + ex2.toPlainString() +
                     "\nE(x)^2: " + mean2.toPlainString());
 
-            return "E(x^2): " + ex2.toPlainString() + "\nE(x)^2: " + mean2.toPlainString() + "\n方差: "
+            return "E(x^2): " + ex2.toPlainString() + "\nE(x)^2: " + mean2.toPlainString() + "\n中心服务器计算方差结果为: "
                     + variance.toPlainString();
         } catch (Exception e) {
             return "方差计算出错: " + e.getMessage();

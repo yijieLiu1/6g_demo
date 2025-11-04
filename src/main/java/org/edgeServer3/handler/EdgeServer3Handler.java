@@ -1,14 +1,17 @@
 package org.edgeServer3.handler;
 
-import com.sun.net.httpserver.HttpExchange;
-import com.sun.net.httpserver.HttpHandler;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.util.*;
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 import org.edgeServer3.utils.EdgeServer3Manager;
 import org.json.JSONObject;
+
+import com.sun.net.httpserver.HttpExchange;
+import com.sun.net.httpserver.HttpHandler;
 
 public class EdgeServer3Handler implements HttpHandler {
 
@@ -21,19 +24,19 @@ public class EdgeServer3Handler implements HttpHandler {
         if (path.equals("/get/totalclientNum")) {
             response = "totalclientNum:" + String.valueOf(EdgeServer3Manager.getClientCount());
         } else if (path.equals("/get/sumcipherText")) {
-            System.out.println("\n\nedgeServer3收到/get/sumcipherText请求，开始聚合密文......");
+            System.out.println("\nedgeServer3: 收到/get/sumcipherText请求，开始聚合密文......");
             long startTime = System.currentTimeMillis();
             // 输出两个聚合密文
             String cipherText = EdgeServer3Manager.getAggregatedCipherText();
             long endTime = System.currentTimeMillis();
-            System.out.println("\nedgeServer3聚合普通密文结束......共耗时" + (endTime - startTime) + "ms");
-            System.out.println("\n\nedgeServer3收到/get/sumcipherText请求，开始聚合平方密文......");
+            System.out.println("edgeServer3聚合普通密文结束......共耗时" + (endTime - startTime) + "ms");
+
             long startTime2 = System.currentTimeMillis();
             String squareCipherText = EdgeServer3Manager.getAggregatedSquareCipherText();
             long endTime2 = System.currentTimeMillis();
-            System.out.println("\nedgeServer3聚合平方密文结束......共耗时" + (endTime2 - startTime2) + "ms");
+            System.out.println("edgeServer3聚合平方密文结束......共耗时" + (endTime2 - startTime2) + "ms");
             EdgeServer3Manager.sendAggregatedCipherTextToEdgeServer4(cipherText, squareCipherText);
-            response = "sumcipherText:{\"cipherText\":\"" + cipherText + "\",\"squareCipherText\":\"" + squareCipherText
+            response = "密文聚合结果:{\"普通密文聚合结果\":\"" + cipherText + "\",\"平方密文聚合结果\":\"" + squareCipherText
                     + "\"}";
 
         } else if (path.equals("/post/cipherText")) {
@@ -61,7 +64,8 @@ public class EdgeServer3Handler implements HttpHandler {
                 return;
             }
         } else if (path.equals("/post/comparePair")) {
-            System.out.println("开始执行/post/comparePair.....");
+            System.out.println("\nedgeServer3: 收到/post/comparePair请求，开始发送比较密文(区间比较)......");
+
             if (exchange.getRequestMethod().equals("POST")) {
                 try {
                     // 只在最大区间找最大值，最小区间找最小值
@@ -70,8 +74,6 @@ public class EdgeServer3Handler implements HttpHandler {
                     try (OutputStream os = exchange.getResponseBody()) {
                         os.write(result.getBytes("UTF-8"));
                     }
-                    // 该方法只是测试edgeServer2解密比较密文的性能。
-                    // String result = org.edgeServer1.utils.EdgeManager.findExtremes();
                 } catch (Exception e) {
                     sendResponse(exchange, 500, "服务端异常: " + e.getMessage());
                 }
@@ -79,7 +81,29 @@ public class EdgeServer3Handler implements HttpHandler {
                 sendResponse(exchange, 405, "Method not allowed");
             }
             return;
-        } else if (path.equals("/get/extremeCipherText")) {
+        } else if (path.equals("/post/allComparePair")) {
+            System.out.println("\nedgeServer3: 收到/post/allComparePair请求，开始发送比较密文(全密文遍历比较)......");
+
+            if (exchange.getRequestMethod().equals("POST")) {
+                try {
+                    // 全密文遍历比较找极值
+                    String result = EdgeServer3Manager.findExtremesByFullComparison();
+                    exchange.sendResponseHeaders(200, result.getBytes("UTF-8").length);
+                    try (OutputStream os = exchange.getResponseBody()) {
+                        os.write(result.getBytes("UTF-8"));
+                    }
+
+                } catch (Exception e) {
+                    sendResponse(exchange, 500, "服务端异常: " + e.getMessage());
+                }
+            } else {
+                sendResponse(exchange, 405, "Method not allowed");
+            }
+            return;
+        }
+
+        else if (path.equals("/get/extremeCipherText")) {
+            System.out.println("\nedgeServer3: 收到/get/extremeCipherText请求，开始向centerServer发送极值密文......");
             String maxId = EdgeServer3Manager.getLastMaxClientId();
             String minId = EdgeServer3Manager.getLastMinClientId();
             String maxCipherText = EdgeServer3Manager.generateExtremeCipherTextforCenterServer(maxId);
@@ -111,9 +135,12 @@ public class EdgeServer3Handler implements HttpHandler {
     }
 
     private void sendResponse(HttpExchange exchange, int statusCode, String response) throws IOException {
-        exchange.sendResponseHeaders(statusCode, response.length());
+        exchange.getResponseHeaders().set("Content-Type", "text/plain; charset=UTF-8");
+        exchange.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
+        byte[] bytes = response.getBytes("UTF-8");
+        exchange.sendResponseHeaders(statusCode, bytes.length);
         try (OutputStream os = exchange.getResponseBody()) {
-            os.write(response.getBytes());
+            os.write(bytes);
         }
     }
 }

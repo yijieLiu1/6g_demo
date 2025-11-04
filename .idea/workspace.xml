@@ -4,15 +4,48 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="e7a7d8d0-bab6-4867-9f40-f8d0348726e6" name="更改" comment="" />
+    <list default="true" id="e7a7d8d0-bab6-4867-9f40-f8d0348726e6" name="更改" comment="">
+      <change afterPath="$PROJECT_DIR$/.idea/dbnavigator.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/smart_manufacturing_data_preprocessed.csv" beforeDir="false" afterPath="$PROJECT_DIR$/smart_manufacturing_data_preprocessed.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/org/dataClient/ClientSimulator.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/org/dataClient/ServerMain.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/org/dataClient/ServerMain.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/org/dataPreprocess.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/org/dataPreprocess.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/org/edgeServer1/Main.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/org/edgeServer1/Main.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/org/edgeServer1/handler/EdgeHandler.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/org/edgeServer1/handler/EdgeHandler.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/org/edgeServer1/utils/EdgeManager.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/org/edgeServer1/utils/EdgeManager.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/org/edgeServer2/handler/EdgeServer2Handler.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/org/edgeServer2/handler/EdgeServer2Handler.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/org/edgeServer2/utils/EdgeServer2Manager.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/org/edgeServer2/utils/EdgeServer2Manager.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/org/edgeServer3/Main.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/org/edgeServer3/Main.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/org/edgeServer3/handler/EdgeServer3Handler.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/org/edgeServer3/handler/EdgeServer3Handler.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/org/edgeServer3/utils/EdgeServer3Manager.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/org/edgeServer3/utils/EdgeServer3Manager.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/org/edgeServer4/handler/EdgeServer4Handler.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/org/edgeServer4/handler/EdgeServer4Handler.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/org/edgeServer4/utils/EdgeServer4Manager.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/org/edgeServer4/utils/EdgeServer4Manager.java" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
-  <component name="ProjectColorInfo"><![CDATA[{
-  "associatedIndex": 6
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="GitHubPullRequestSearchHistory"><![CDATA[{
+  "lastFilter": {
+    "state": "OPEN",
+    "assignee": "yijieLiu1"
+  }
 }]]></component>
+  <component name="GithubPullRequestsUISettings"><![CDATA[{
+  "selectedUrlAndAccountId": {
+    "url": "https://github.com/yijieLiu1/6g_demo.git",
+    "accountId": "764aa511-2196-4015-bec6-072a7cff816b"
+  }
+}]]></component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 6
+}</component>
   <component name="ProjectId" id="2xiacPl1yvVxDMDMz1Ek7CIhtnu" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
@@ -21,9 +54,95 @@
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
     "RunOnceActivity.ShowReadmeOnStart": "true",
-    "kotlin-language-version-configured": "true"
+    "RunOnceActivity.git.unshallow": "true",
+    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
+    "git-widget-placeholder": "main",
+    "kotlin-language-version-configured": "true",
+    "last_opened_file_path": "C:/Users/leg/Desktop/6G/Code/Location",
+    "应用程序.Main.executor": "Run",
+    "应用程序.ServerMain.executor": "Run",
+    "应用程序.org.centerServer.Main.executor": "Run",
+    "应用程序.org.edgeServer2.Main.executor": "Run",
+    "应用程序.org.edgeServer3.Main.executor": "Run",
+    "应用程序.org.edgeServer4.Main.executor": "Run"
   }
 }]]></component>
+  <component name="RunManager" selected="应用程序.Main">
+    <configuration name="Main" type="Application" factoryName="Application" temporary="true" nameIsGenerated="true">
+      <option name="MAIN_CLASS_NAME" value="org.edgeServer1.Main" />
+      <module name="DataClient" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="org.edgeServer1.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="org.centerServer.Main" type="Application" factoryName="Application" temporary="true" nameIsGenerated="true">
+      <option name="MAIN_CLASS_NAME" value="org.centerServer.Main" />
+      <module name="DataClient" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="org.centerServer.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="org.edgeServer2.Main" type="Application" factoryName="Application" temporary="true" nameIsGenerated="true">
+      <option name="MAIN_CLASS_NAME" value="org.edgeServer2.Main" />
+      <module name="DataClient" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="org.edgeServer2.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="org.edgeServer3.Main" type="Application" factoryName="Application" temporary="true" nameIsGenerated="true">
+      <option name="MAIN_CLASS_NAME" value="org.edgeServer3.Main" />
+      <module name="DataClient" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="org.edgeServer3.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="org.edgeServer4.Main" type="Application" factoryName="Application" temporary="true" nameIsGenerated="true">
+      <option name="MAIN_CLASS_NAME" value="org.edgeServer4.Main" />
+      <module name="DataClient" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="org.edgeServer4.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <recent_temporary>
+      <list>
+        <item itemvalue="应用程序.org.centerServer.Main" />
+        <item itemvalue="应用程序.org.edgeServer4.Main" />
+        <item itemvalue="应用程序.org.edgeServer3.Main" />
+        <item itemvalue="应用程序.org.edgeServer2.Main" />
+        <item itemvalue="应用程序.Main" />
+      </list>
+    </recent_temporary>
+  </component>
   <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="应用程序级" UseSingleDictionary="true" transferred="true" />
   <component name="TaskManager">
     <task active="true" id="Default" summary="默认任务">

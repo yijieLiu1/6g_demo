@@ -1,12 +1,13 @@
 package org.edgeServer4.utils;
 
-import java.math.BigInteger;
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.math.RoundingMode;
+import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.net.URI;
+
 import org.json.JSONObject;
 
 public class EdgeServer4Manager {
@@ -137,7 +138,7 @@ public class EdgeServer4Manager {
 
     // 解密聚合值在processAggregatedCipherText中已经实现。所以直接使用decryptedText即可。
     public static void processMeanData(int clientCount) {
-        System.out.println("edgeServer4开始计算均值......clientCount: " + clientCount);
+        System.out.println("edgeServer4开始计算均值......当前边缘节点接收到的密文总数: " + clientCount);
         if (clientCount > 0) {
             BigDecimal m = new BigDecimal(decryptedText);
             meanValue = m.divide(new BigDecimal(clientCount), 8,
@@ -182,10 +183,9 @@ public class EdgeServer4Manager {
                 RoundingMode.HALF_UP);
         BigInteger valueToEncrypt = scaled.multiply(BigDecimal.TEN.pow(SCALE)).toBigInteger();
         BigInteger encryptedValue = ImprovePaillier.encrypt(valueToEncrypt, 1);
-        // // 只保存，不自动上传
         lastImpaillierCipherText = encryptedValue.toString();
         sendEncryptedValueToCenterServer(lastImpaillierCipherText, savedClientCount);
-        return lastImpaillierCipherText;
+        return "边缘节点对局部数据，使用ImPaillier进行二次加密。密文结果为:\n" + lastImpaillierCipherText;
     }
 
     // /get/decryptedText时才解密
@@ -196,7 +196,7 @@ public class EdgeServer4Manager {
 
         processAggregatedCipherText(savedCipherText); // 每次都解密
 
-        return "聚合值结果：" + decryptedText;
+        return "边缘节点求和结果为：" + decryptedText;
     }
 
     // /get/meanResult时才计算均值:解密聚合密文->计算均值
@@ -209,7 +209,7 @@ public class EdgeServer4Manager {
         if (meanValue == null) {
             return "Mean Result: 未计算或clientCount为0\n";
         }
-        return "Mean Result: " + meanValue.setScale(8, RoundingMode.HALF_UP).toPlainString() + "\n";
+        return "边缘节点求均值结果为： " + meanValue.setScale(8, RoundingMode.HALF_UP).toPlainString() + "\n";
     }
 
     // /get/varianceResult时才计算方差：解密聚合密文->计算均值->解密平方密文->求方差
@@ -226,7 +226,7 @@ public class EdgeServer4Manager {
         if (varianceValue == null) {
             return "Variance Result: 未计算或数据不足\n";
         }
-        return "方差结果: " + varianceValue.setScale(8, RoundingMode.HALF_UP).toPlainString() + "\n";
+        return "边缘节点求方差结果为: " + varianceValue.setScale(8, RoundingMode.HALF_UP).toPlainString() + "\n";
     }
 
     public static String compareAndGetBigger(String clientId1, String clientId2, String cmpCipher) {
@@ -259,7 +259,9 @@ public class EdgeServer4Manager {
 
     // getCompareResult返回最大最小id
     public static String getCompareResult() {
-        return String.format("最大值 clientId: %s, 最小值 clientId: %s,用时: %s", maxId, minId, compareComputeTime + "ms");
+        System.out.println(
+                "edgeServer4: 获取极值结果, 用时: " + compareComputeTime + "ms");
+        return String.format("边缘节点求极值结果为:\n"+"最大值 clientId: %s, 最小值 clientId: %s,用时: %s", maxId, minId, compareComputeTime + "ms");
     }
 
     // 新增：获取sumX2的ImprovePaillier密文并上传centerServer
@@ -268,9 +270,10 @@ public class EdgeServer4Manager {
             return "No sumX2 value available.";
         }
         BigDecimal scaled = sumX2.setScale(SCALE, RoundingMode.HALF_UP);
-        System.out.println("sumx2" + scaled);
+
         BigInteger valueToEncrypt = ImprovePaillier.encrypt(scaled.multiply(BigDecimal.TEN.pow(SCALE)).toBigInteger(),
                 1);
+        System.out.println("边缘节点对局部平方和的数据，使用ImPaillier进行二次加密。密文结果为:\n" + valueToEncrypt.toString());
         // 发送到centerServer
         try {
             JSONObject json = new JSONObject();
@@ -292,6 +295,6 @@ public class EdgeServer4Manager {
             System.err.println("Error sending variance cipher text to center server: " + e.getMessage());
             e.printStackTrace();
         }
-        return valueToEncrypt.toString();
+        return "边缘节点对局部平方和的数据，使用ImPaillier进行二次加密。密文结果为:\n" + valueToEncrypt.toString() + "\n" + "当前接收到的密文数:" + savedClientCount;
     }
 }
