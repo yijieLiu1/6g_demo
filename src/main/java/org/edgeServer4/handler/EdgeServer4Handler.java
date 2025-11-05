@@ -1,12 +1,14 @@
 package org.edgeServer4.handler;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+
+import org.edgeServer4.utils.EdgeServer4Manager;
+
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import org.edgeServer4.utils.EdgeServer4Manager;
 
 public class EdgeServer4Handler implements HttpHandler {
     @Override
@@ -37,6 +39,7 @@ public class EdgeServer4Handler implements HttpHandler {
                     String aggregatedCipherText = json.getString("cipherText");
                     String squareCipherText = json.getString("squareCipherText");
                     int clientCount = json.getInt("clientCount");
+                    System.out.println("edgeServer4: 普通密文聚合结果为:" + aggregatedCipherText + "\n" + "平方密文聚合结果为:" + squareCipherText + "\n" + "当前接收到的密文数为:" + clientCount);
                     // 只保存，不做解密和计算
                     EdgeServer4Manager.saveAggregatedCipherText(aggregatedCipherText, squareCipherText, clientCount);
                     response = "Success";

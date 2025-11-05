@@ -32,7 +32,7 @@ public class ServerMain {
     public static void main(String[] args) {
         try {
             startServer(13456);
-            System.out.println("Server started on port 13456...");
+            System.out.println("DataClient started on port 13456...");
         } catch (IOException e) {
             System.err.println("Error starting HTTP server: " + e.getMessage());
             e.printStackTrace();

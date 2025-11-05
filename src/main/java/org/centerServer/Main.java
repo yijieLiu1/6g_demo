@@ -36,9 +36,7 @@ public class Main {
             // 启动服务器
             server.start();
             System.out.println("Center Server启动成功!");
-            System.out.println("可以通过以下地址访问:");
-            System.out.println("- http://localhost:" + PORT + "/get/decryptedText");
-            System.out.println("- http://localhost:" + PORT + "/post/aggregatedCipherText");
+
 
         } catch (IOException e) {
             System.err.println("Center Server启动失败!");

@@ -171,10 +171,12 @@ public class EdgeServer2Manager {
 
     // 新增：获取ImprovePaillier密文并上传centerServer
     public static String getImpaillierCipherText() {
+        System.out.println("edgeServer2开始加密计算...");
         // 使用ImprovePaillier的SK_DO密钥对解密结果进行加密
         BigDecimal scaled = new BigDecimal(decryptedText).setScale(SCALE,
                 RoundingMode.HALF_UP);
         BigInteger valueToEncrypt = scaled.multiply(BigDecimal.TEN.pow(SCALE)).toBigInteger();
+        System.out.println("当前使用的ImPaillier密钥为: " + ImprovePaillier.getSK_DO(0).toString());
         BigInteger encryptedValue = ImprovePaillier.encrypt(valueToEncrypt, 0);
         // // 只保存，不自动上传
         lastImpaillierCipherText = encryptedValue.toString();
@@ -259,12 +261,14 @@ public class EdgeServer2Manager {
 
     // 新增：获取sumX2的ImprovePaillier密文并上传centerServer
     public static String getAndsendImpaillierVarianceCipherText() {
+        System.out.println("edgeServer2开始加密平方和...");
         if (sumX2 == null) {
             return "No sumX2 value available.";
         }
         BigDecimal scaled = sumX2.setScale(SCALE, RoundingMode.HALF_UP);
 
         BigInteger valueToEncrypt = scaled.multiply(BigDecimal.TEN.pow(SCALE)).toBigInteger();
+        System.out.println("当前使用的ImPaillier密钥为: " + ImprovePaillier.getSK_DO(0).toString());
         BigInteger encryptedValue = ImprovePaillier.encrypt(valueToEncrypt, 0);
         System.out.println("边缘节点对局部平方和的数据，使用ImPaillier进行二次加密。密文结果为:\n" + encryptedValue.toString());
         // 发送到centerServer

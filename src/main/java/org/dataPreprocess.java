@@ -23,7 +23,7 @@ public class dataPreprocess {
         String csvFilePath = "smart_manufacturing_data.csv";
 
         // ✅ 这里设置要处理的条数，比如 5000；如果是 -1 就处理全部
-        int limit = 20000;
+        int limit = 10000;
 
         List<String> cleaned = cleanData(csvFilePath, limit);
         List<String> processed = intervalDivision(cleaned);
@@ -74,9 +74,9 @@ public class dataPreprocess {
                 if (parts.length < cols.length)
                     continue;
 
-                String failureType = parts[idxFailureType].trim();
-                if (!"Normal".equals(failureType))
-                    continue;
+                // String failureType = parts[idxFailureType].trim();
+                // if (!"Normal".equals(failureType))
+                //     continue;
 
                 String timestamp = parts[idxTimestamp].trim();
                 String machineId = parts[idxMachineId].trim();

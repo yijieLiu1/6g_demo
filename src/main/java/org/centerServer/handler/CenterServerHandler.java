@@ -43,7 +43,7 @@ public class CenterServerHandler implements HttpHandler {
             long startTime = System.currentTimeMillis();
             response = CenterServerManager.getMeanResult();
             long endTime = System.currentTimeMillis();
-            System.out.println("\nCenterServer获取均值结果结束......共耗时" + (endTime - startTime) + "ms");
+            System.out.println("CenterServer获取均值结果结束......共耗时" + (endTime - startTime) + "ms");
 
         }
         // 处理聚合密文POST请求，聚合
@@ -62,6 +62,7 @@ public class CenterServerHandler implements HttpHandler {
                     String encryptedValue = json.getString("encryptedValue");
                     int clientCount = json.getInt("clientCount");
                     String serverType = exchange.getRequestHeaders().getFirst("Server-Type");
+                    System.out.println("centerServer: 收到普通密文, encryptedValue: " + encryptedValue + ", clientCount: " + clientCount + ", serverType: " + serverType);
                     org.centerServer.utils.CenterServerManager.processAggregatedCipherText(serverType, encryptedValue,
                             clientCount);
                     response = "Success";
@@ -81,7 +82,7 @@ public class CenterServerHandler implements HttpHandler {
             long startTime = System.currentTimeMillis();
             response = CenterServerManager.getExtremeResult();
             long endTime = System.currentTimeMillis();
-            System.out.println("\nCenterServer获取极值结果结束......共耗时" + (endTime - startTime) + "ms");
+            System.out.println("CenterServer获取极值结果结束......共耗时" + (endTime - startTime) + "ms");
         }
         // 只赋值，不进行比较计算。
         else if (path.equals("/post/extremeCipherText")) {
@@ -100,6 +101,7 @@ public class CenterServerHandler implements HttpHandler {
                     String minClientId = json.getString("minClientId");
                     String minCipherText = json.getString("minCipherText");
                     String serverType = json.getString("serverId");
+                    System.out.println("centerServer: 收到极值密文, maxClientId: " + maxClientId + ", maxCipherText: " + maxCipherText + ", minClientId: " + minClientId + ", minCipherText: " + minCipherText + ", serverType: " + serverType);
                     CenterServerManager.processExtremeCipherText(serverType, maxClientId,
                             maxCipherText, minClientId, minCipherText);
                     response = "Success";
@@ -127,6 +129,7 @@ public class CenterServerHandler implements HttpHandler {
                     String encryptedValue = json.getString("encryptedValue");
                     int clientCount = json.getInt("clientCount");
                     String serverType = exchange.getRequestHeaders().getFirst("Server-Type");
+                    System.out.println("centerServer: 收到方差密文, encryptedValue: " + encryptedValue + ", clientCount: " + clientCount + ", serverType: " + serverType);
                     CenterServerManager.processVarianceCipherText(serverType, encryptedValue,
                             clientCount);
                     response = "Success";
