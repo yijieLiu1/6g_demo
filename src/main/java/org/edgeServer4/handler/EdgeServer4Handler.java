@@ -39,7 +39,7 @@ public class EdgeServer4Handler implements HttpHandler {
                     String aggregatedCipherText = json.getString("cipherText");
                     String squareCipherText = json.getString("squareCipherText");
                     int clientCount = json.getInt("clientCount");
-                    System.out.println("edgeServer4: 普通密文聚合结果为:" + aggregatedCipherText + "\n" + "平方密文聚合结果为:" + squareCipherText + "\n" + "当前接收到的密文数为:" + clientCount);
+                    System.out.println("edgeServer4: 收到/post/aggregatedCipherText请求：\n已顺利接收到所有的聚合密文并保存...\n密文值"+aggregatedCipherText+"平方密文值"+squareCipherText+"\n"+"密文总数"+clientCount);
                     // 只保存，不做解密和计算
                     EdgeServer4Manager.saveAggregatedCipherText(aggregatedCipherText, squareCipherText, clientCount);
                     response = "Success";

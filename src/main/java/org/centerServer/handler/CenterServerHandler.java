@@ -14,7 +14,7 @@ import com.sun.net.httpserver.HttpHandler;
 public class CenterServerHandler implements HttpHandler {
     @Override
     public void handle(HttpExchange exchange) throws IOException {
-        System.out.println("收到请求: " + exchange.getRequestMethod() + " " + exchange.getRequestURI().getPath());
+        System.out.println("\n收到请求: " + exchange.getRequestMethod() + " " + exchange.getRequestURI().getPath());
 
         // 添加CORS头
         exchange.getResponseHeaders().add("Access-Control-Allow-Origin", "*");
@@ -31,7 +31,7 @@ public class CenterServerHandler implements HttpHandler {
         String response;
         // 解密聚合值
         if (path.equals("/get/decryptedText")) {
-            System.out.println("\n\ncenterServer收到/get/decryptedText请求，开始解密聚合值......");
+            System.out.println("centerServer收到/get/decryptedText请求，开始解密聚合值......");
             long startTime = System.currentTimeMillis();
             response = CenterServerManager.getDecryptedText();
             long endTime = System.currentTimeMillis();
@@ -39,7 +39,7 @@ public class CenterServerHandler implements HttpHandler {
         }
         // 获取均值
         else if (path.equals("/get/meanResult")) {
-            System.out.println("\n\nCenterServer收到/get/meanResult请求，开始获取均值结果......");
+            System.out.println("CenterServer收到/get/meanResult请求，开始获取均值结果......");
             long startTime = System.currentTimeMillis();
             response = CenterServerManager.getMeanResult();
             long endTime = System.currentTimeMillis();
@@ -49,7 +49,7 @@ public class CenterServerHandler implements HttpHandler {
         // 处理聚合密文POST请求，聚合
         else if (path.equals("/post/aggregatedCipherText")) {
             if (exchange.getRequestMethod().equals("POST")) {
-                System.out.println("处理聚合密文POST请求");
+                System.out.println("中心服务器已顺利接收到密文...");
                 BufferedReader reader = new BufferedReader(new InputStreamReader(exchange.getRequestBody(), "UTF-8"));
                 StringBuilder sb = new StringBuilder();
                 String line;
@@ -78,7 +78,7 @@ public class CenterServerHandler implements HttpHandler {
         }
         // 获取极值结果，进行了比较计算
         else if (path.equals("/get/extremeResult")) {
-            System.out.println("\n\nCenterServer收到/get/extremeResult请求，开始获取极值结果......");
+            System.out.println("CenterServer收到/get/extremeResult请求，开始获取极值结果......");
             long startTime = System.currentTimeMillis();
             response = CenterServerManager.getExtremeResult();
             long endTime = System.currentTimeMillis();
@@ -144,11 +144,11 @@ public class CenterServerHandler implements HttpHandler {
         }
         // 获取方差结果
         else if (path.equals("/get/varianceResult")) {
-            System.out.println("\n\nCenterServer收到/get/varianceResult请求，开始获取方差结果......");
+            System.out.println("CenterServer收到/get/varianceResult请求，开始获取方差结果......");
             long startTime = System.currentTimeMillis();
             response = CenterServerManager.getVarianceResult();
             long endTime = System.currentTimeMillis();
-            System.out.println("\nCenterServer获取方差结果结束......共耗时" + (endTime - startTime) + "ms");
+            System.out.println("CenterServer获取方差结果结束......共耗时" + (endTime - startTime) + "ms");
 
         } else {
             System.out.println("未找到路径: " + path);

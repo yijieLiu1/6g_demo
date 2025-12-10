@@ -146,7 +146,7 @@ public class EdgeServer2Manager {
     private static void sendEncryptedValueToCenterServer(String encryptedValue, int clientCount) {
         try {
             System.out.println("正在发送数据到Center Server...");
-            System.out.println("URL: " + CENTER_SERVER_URL + "/post/aggregatedCipherText");
+
             System.out.println("数据: " + encryptedValue + ", clientCount: " + clientCount);
             JSONObject json = new JSONObject();
             json.put("encryptedValue", encryptedValue);
@@ -181,7 +181,7 @@ public class EdgeServer2Manager {
         // // 只保存，不自动上传
         lastImpaillierCipherText = encryptedValue.toString();
         sendEncryptedValueToCenterServer(lastImpaillierCipherText, savedClientCount);
-        return "边缘节点对局部数据，使用ImPaillier进行二次加密。密文结果为:\n" + lastImpaillierCipherText;
+        return "边缘节点2使用ImPaillier进行二次加密。密文结果为:\n" + lastImpaillierCipherText+"\n"+"密文已顺利发送至中心服务器";
     }
 
     // /get/decryptedText时才解密
@@ -292,7 +292,7 @@ public class EdgeServer2Manager {
             System.err.println("Error sending variance cipher text to center server: " + e.getMessage());
             e.printStackTrace();
         }
-        return "边缘节点对局部平方和的数据，使用ImPaillier进行二次加密。密文结果为:\n" + encryptedValue.toString() + "\n" +
-                "当前接收到的密文数:" + savedClientCount;
+        return "边缘节点2对局部平方和的数据，使用ImPaillier进行二次加密。密文结果为:\n" + encryptedValue.toString() + "\n" +
+                "当前接收到的密文数:" + savedClientCount+"\n"+"平方密文已顺利发送至中心服务器";
     }
 }

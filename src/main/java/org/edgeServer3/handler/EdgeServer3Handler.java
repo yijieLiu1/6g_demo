@@ -36,8 +36,7 @@ public class EdgeServer3Handler implements HttpHandler {
             long endTime2 = System.currentTimeMillis();
             System.out.println("edgeServer3聚合平方密文结束......共耗时" + (endTime2 - startTime2) + "ms");
             EdgeServer3Manager.sendAggregatedCipherTextToEdgeServer4(cipherText, squareCipherText);
-            response = "密文聚合结果:{\"普通密文聚合结果\":\"" + cipherText + "\",\"平方密文聚合结果\":\"" + squareCipherText
-                    + "\"}";
+            response = "所有密文(普通密文和平方密文)和密文总数已顺利聚合并发送完成...";
 
         } else if (path.equals("/post/cipherText")) {
             if (exchange.getRequestMethod().equals("POST")) {
@@ -119,7 +118,7 @@ public class EdgeServer3Handler implements HttpHandler {
                 ordered.put("minId", minId);
                 ordered.put("minCipherText", minCipherText);
                 JSONObject json = new JSONObject(ordered);
-                response = "ExtremeCipherText:" + json.toString();
+                response = "边缘节点3的极值密文已顺利发送至中心服务器:" + json.toString();
             } else {
                 response = "错误: 极值信息不完整";
             }
