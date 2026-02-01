@@ -1,0 +1,4 @@
+﻿# Runtime requirements
+Java==11
+Maven>=3.6
+

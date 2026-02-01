@@ -14,11 +14,9 @@ public class Main {
         try {
             System.out.println("正在启动Center Server...");
             System.out.println("监听端口: " + PORT);
-
             InetSocketAddress address = new InetSocketAddress("0.0.0.0", PORT);
             HttpServer server = HttpServer.create(address, 0);
             CenterServerHandler centerServerHandler = new CenterServerHandler();
-
             // 注册路由
             System.out.println("注册路由...");
             server.createContext("/get/decryptedText", centerServerHandler);
@@ -29,14 +27,11 @@ public class Main {
             server.createContext("/post/aggregatedCipherText", centerServerHandler);
             server.createContext("/post/varianceCipherText", centerServerHandler);
             System.out.println("路由注册完成");
-
             // 设置线程池
             server.setExecutor(java.util.concurrent.Executors.newFixedThreadPool(10));
-
             // 启动服务器
             server.start();
             System.out.println("Center Server启动成功!");
-
 
         } catch (IOException e) {
             System.err.println("Center Server启动失败!");
